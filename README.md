@@ -1,6 +1,6 @@
 # Ладожский календарь
 
-**Ladoga Calendar** is a modern authorial calendar for Staraya Ladoga and the lower Volkhov region (Russia). It expresses an ordinary Gregorian date through the nearest of 22 fixed annual holidays and its own year count, the "Years of Ladoga" (`ladoga_year = gregorian_year - 752`). The repository ships a ready-made JSON file covering 2025-01-01 to 2038-12-31: every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE). The rest of this README is in Russian.
+**Ladoga Calendar** is a modern authorial calendar for Staraya Ladoga and the lower Volkhov region (Russia). It expresses an ordinary Gregorian date through the nearest of 22 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE). The rest of this README is in Russian.
 
 ---
 
@@ -16,22 +16,31 @@
 
 ## Что лежит в репозитории
 
-| Файл | Что это |
+| Путь | Что это |
 | --- | --- |
-| `ladoga-calendar-2025-2038.json` | Готовые данные: праздники, годы и подпись для каждого дня с 1 января 2025 по 31 декабря 2038 года |
-| `scripts/check_calendar.py` | Скрипт, который независимо проверяет данные |
+| `data/ru/2025.json` … `data/ru/2038.json` | Готовые данные: по одному файлу на год, в каждом подпись для каждого дня |
+| `data/index.json` | Оглавление: диапазон лет, языки и пути к файлам |
+| `data/ru/holidays.json` | Названия и описания праздников для показа |
+| `ladoga-definitions.json` | Правила календаря: праздники, счёт лет, шаблоны фраз, источники. Из него собираются файлы в `data/` |
+| `scripts/build_calendar.py` | Генератор, который собирает `data/` из правил |
+| `scripts/check_calendar.py` | Скрипт, который независимо проверяет правила и данные |
 | `AGENTS.md` | Подробные правила проекта и описание формата данных |
 | `LICENSE` | Текст лицензии CC0 1.0 |
 
+Все файлы — в кодировке UTF-8. Файл одного года весит около 134 КБ.
+
 ## Как пользоваться
 
-Достаточно открыть JSON и взять запись по дате в формате `YYYY-MM-DD`.
+Откройте файл нужного года и возьмите запись по дате в формате `YYYY-MM-DD`. Дата — московская: календарный день начинается в полночь по часовому поясу `Europe/Moscow`.
 
 Из командной строки с помощью `jq`:
 
 ```bash
-jq -r '.dates["2026-11-23"].text' ladoga-calendar-2025-2038.json
+jq -r '.dates["2026-11-23"].text' data/ru/2026.json
 # На второй день после Тёмной воды, в лето 1274-е от ладожского начала.
+
+# Today in Moscow, whatever the local time zone is:
+d=$(TZ=Europe/Moscow date +%F); jq -r --arg d "$d" '.dates[$d].text' "data/ru/${d%%-*}.json"
 ```
 
 На Python, для сегодняшней даты:
@@ -39,27 +48,36 @@ jq -r '.dates["2026-11-23"].text' ladoga-calendar-2025-2038.json
 ```python
 import json
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-with open("ladoga-calendar-2025-2038.json", encoding="utf-8") as f:
-    cal = json.load(f)
+data = Path("data")
+index = json.loads((data / "index.json").read_text(encoding="utf-8"))
 
 # The calendar day is the local date in Europe/Moscow.
-today = datetime.now(ZoneInfo(cal["timezone"])).date().isoformat()
+today = datetime.now(ZoneInfo(index["timezone"])).date()
 
-entry = cal["dates"].get(today)
-if entry is None:
+path = index["files"]["ru"].get(str(today.year))
+if path is None:
     print("Date is outside the calendar range")
 else:
+    year = json.loads((data / path).read_text(encoding="utf-8"))
+    entry = year["dates"][today.isoformat()]
     print(entry["text"])   # full phrase
     print(entry["short"])  # short form, e.g. "1274 · Тёмная вода +2"
+```
+
+Внутри `dates` каждая запись дня занимает ровно одну строку вида `    "2026-11-23": {...}`. Это обещание формата, и скрипт проверки за ним следит. Поэтому программа без разбора JSON может найти запись по дате. Искать нужно ключ вместе с `: {`, потому что та же дата встречается и внутри других записей:
+
+```bash
+grep -F '"2026-11-23": {' data/ru/2026.json
 ```
 
 Запись одного дня выглядит так (`2026-12-10`):
 
 ```json
 {
-  "ladoga_year": 1274,
+  "era_year": 1274,
   "anchor_id": "vainamoinen",
   "anchor_date": "2026-12-07",
   "anchor_year": 2026,
@@ -76,14 +94,22 @@ else:
 - `offset_days` — сколько дней прошло после праздника (положительное число) или осталось до него (отрицательное); `0` — сам праздник;
 - `anchor_id` и `anchor_date` — какой праздник выбран опорным и когда он был.
 
-Другие полезные пути в JSON:
+Кроме `dates`, в файле года есть, среди прочего (полный список — в `AGENTS.md`):
 
-- `years["2026"].ladoga_year` — номер ладожского лета;
-- `years["2026"].year_phrase` — «в лето 1274-е от ладожского начала»;
-- `years["2026"].holiday_dates` — даты всех праздников этого года;
-- `holidays` — описания праздников: названия, смысл, предложенные обычаи, исторические оговорки и источники.
+- `era_year` — номер ладожского лета;
+- `year_phrase` — «в лето 1274-е от ладожского начала»;
+- `holiday_dates` — даты всех праздников этого года.
 
-Если даты нет в `dates`, значит, она вне диапазона файла. В этом случае нельзя подставлять ближайшую дату или другой год.
+Названия и описания праздников (полное название, смысл, предложенные обычаи, исторические оговорки) лежат в `data/ru/holidays.json`. Найти праздник можно по `anchor_id` из записи дня. Список праздников с датами в виде «день.месяц»:
+
+```bash
+jq -r '.holidays[] | "\(.day).\(.month) \(.name)"' data/ru/holidays.json
+# 12.1 День домашнего огня
+# 2.2 Середина зимы
+# ...
+```
+
+Если года нет в `data/index.json`, дата вне диапазона. Если год есть, а даты нет в `dates`, такой даты не существует, например 29 февраля 2026 года. В обоих случаях нельзя подставлять ближайшую дату или другой год. Опорный праздник может быть за пределами диапазона: для 1 января 2025 года это Коляда 21 декабря 2024 года, а файла 2024 года нет.
 
 ## Правила календаря
 
@@ -136,15 +162,21 @@ else:
 
 ## Источники
 
-Исторические и природные сведения подтверждены источниками из раздела `sources` в JSON. У каждого праздника в поле `historical_note` прямо сказано, что в нём взято из традиции, а что придумано для календаря. Например, источник о весеннем ходе корюшки у устья Волхова подтверждает сам промысел, но не существование исторического Корюшкиного дня 26 апреля.
+Исторические и природные сведения подтверждены источниками из раздела `sources` в `ladoga-definitions.json`. У каждого праздника в поле `historical_note` прямо сказано, что в нём взято из традиции, а что придумано для календаря. Например, источник о весеннем ходе корюшки у устья Волхова подтверждает сам промысел, но не существование исторического Корюшкиного дня 26 апреля.
 
-## Проверка данных
+## Проверка и сборка данных
+
+Нужен только Python 3, сторонние библиотеки не требуются.
 
 ```bash
-python3 scripts/check_calendar.py
+python3 scripts/build_calendar.py           # rebuild data/ from ladoga-definitions.json
+python3 scripts/build_calendar.py --check   # make sure data/ is up to date, write nothing
+python3 scripts/check_calendar.py           # independent check of rules and data
 ```
 
-Нужен только Python 3, сторонние библиотеки не требуются. Скрипт заново рассчитывает каждую запись по правилам календаря и сравнивает результат с файлом. Если всё совпадает, он печатает `OK`, иначе — список ошибок.
+Праздники и правила меняют только в `ladoga-definitions.json`, а потом пересобирают `data/`. У скрипта проверки есть своя таблица праздников и свои правила построения фраз. По ним он заново рассчитывает каждую запись, независимо от генератора, и сравнивает с данными. Поэтому при намеренном изменении праздника его нужно поправить и в этой таблице, подробности — в `AGENTS.md`. Если всё совпадает, обе проверки заканчивают вывод строкой с `OK`, иначе печатают `FAILED` и список ошибок.
+
+Данные устроены так с версии формата 2.0.0. Раньше был один файл `ladoga-calendar-2025-2038.json`; как перейти со старого формата, описано в `AGENTS.md`.
 
 ## Лицензия
 

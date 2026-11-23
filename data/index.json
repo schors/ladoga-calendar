@@ -1,0 +1,55 @@
+{
+  "schema_version": "2.0.0",
+  "calendar_id": "ladoga",
+  "calendar_version": "1.0.0",
+  "name": "Ладожский календарь",
+  "definitions": "../ladoga-definitions.json",
+  "timezone": "Europe/Moscow",
+  "encoding": "UTF-8",
+  "range": {
+    "start": "2025-01-01",
+    "end": "2038-12-31",
+    "inclusive": true,
+    "year_count": 14,
+    "day_count": 5113,
+    "leap_year_count": 3
+  },
+  "languages": [
+    "ru"
+  ],
+  "default_language": "ru",
+  "holidays": {
+    "ru": "ru/holidays.json"
+  },
+  "files": {
+    "ru": {
+      "2025": "ru/2025.json",
+      "2026": "ru/2026.json",
+      "2027": "ru/2027.json",
+      "2028": "ru/2028.json",
+      "2029": "ru/2029.json",
+      "2030": "ru/2030.json",
+      "2031": "ru/2031.json",
+      "2032": "ru/2032.json",
+      "2033": "ru/2033.json",
+      "2034": "ru/2034.json",
+      "2035": "ru/2035.json",
+      "2036": "ru/2036.json",
+      "2037": "ru/2037.json",
+      "2038": "ru/2038.json"
+    }
+  },
+  "usage": {
+    "paths": "Все пути в этом файле записаны относительно папки, где он лежит.",
+    "year_file": "files[language][YYYY] — файл года",
+    "holidays_file": "holidays[language] — названия и описания праздников по anchor_id",
+    "ready_date": "dates[YYYY-MM-DD].text",
+    "day_only": "dates[YYYY-MM-DD].day_text",
+    "short_date": "dates[YYYY-MM-DD].short",
+    "year_number": "era_year — номер ладожского лета",
+    "year_phrase": "year_phrase",
+    "holiday_occurrence": "holiday_dates[holiday_id]",
+    "outside_range": "Если года нет в files, дата вне диапазона. Если в файле года нет даты, такой даты не существует. Нельзя молча подставлять другой год.",
+    "editing": "Файлы в этой папке создаются скриптом scripts/build_calendar.py из ladoga-definitions.json. Вручную их не правят."
+  }
+}
