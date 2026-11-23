@@ -1,6 +1,6 @@
 # Ладожский календарь
 
-**Ladoga Calendar** is a modern authorial calendar for Staraya Ladoga and the lower Volkhov region (Russia). It expresses an ordinary Gregorian date through the nearest of 22 fixed annual holidays and its own year count, the "Years of Ladoga" (`ladoga_year = gregorian_year - 752`). The repository ships a ready-made JSON file covering 2025-01-01 to 2038-12-31: every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. The rest of this README is in Russian.
+**Ladoga Calendar** is a modern authorial calendar for Staraya Ladoga and the lower Volkhov region (Russia). It expresses an ordinary Gregorian date through the nearest of 22 fixed annual holidays and its own year count, the "Years of Ladoga" (`ladoga_year = gregorian_year - 752`). The repository ships a ready-made JSON file covering 2025-01-01 to 2038-12-31: every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE). The rest of this README is in Russian.
 
 ---
 
@@ -21,6 +21,7 @@
 | `ladoga-calendar-2025-2038.json` | Готовые данные: праздники, годы и подпись для каждого дня с 1 января 2025 по 31 декабря 2038 года |
 | `scripts/check_calendar.py` | Скрипт, который независимо проверяет данные |
 | `AGENTS.md` | Подробные правила проекта и описание формата данных |
+| `LICENSE` | Текст лицензии CC0 1.0 |
 
 ## Как пользоваться
 
@@ -144,3 +145,9 @@ python3 scripts/check_calendar.py
 ```
 
 Нужен только Python 3, сторонние библиотеки не требуются. Скрипт заново рассчитывает каждую запись по правилам календаря и сравнивает результат с файлом. Если всё совпадает, он печатает `OK`, иначе — список ошибок.
+
+## Лицензия
+
+Всё содержимое репозитория — данные, тексты и код — передано в общественное достояние по [CC0 1.0 Universal](LICENSE). Его можно свободно копировать, изменять и использовать для любых целей, в том числе коммерческих, без разрешения и без указания автора.
+
+Это не касается внешних материалов, на которые ссылается раздел `sources`: права на них принадлежат их авторам.
