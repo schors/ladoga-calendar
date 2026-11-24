@@ -416,8 +416,50 @@ def card(moment):
     return svg(width, height, body)
 
 
+def petal(cx, cy, angle, length, width, fill, inner=None):
+    """A rounded petal from the centre, turned by angle degrees (0 points up)."""
+    def shape(l, w, color, opacity=1):
+        d = (f"M0,0 C{w:.1f},{-l * 0.25:.1f} {w * 1.25:.1f},{-l * 0.85:.1f} 0,{-l:.1f} "
+             f"C{-w * 1.25:.1f},{-l * 0.85:.1f} {-w:.1f},{-l * 0.25:.1f} 0,0 Z")
+        return (f'<path d="{d}" fill="{color}" opacity="{opacity}" stroke="#3f2c6e" stroke-opacity="0.25" '
+                f'transform="translate({cx:.1f} {cy:.1f}) rotate({angle:.1f})"/>')
+    parts = [shape(length, width, fill)]
+    if inner:
+        parts.append(shape(length * 0.5, width * 0.55, inner))
+    return "\n".join(parts)
+
+
+def pansy():
+    """The calendar's sign: a wild pansy (Viola tricolor) between two ornament bands.
+
+    Natural colours; an authorial sign, not a symbol taken from any source.
+    """
+    width, height = 900, 160
+    cx, cy = width / 2, 80
+    body = [band(40, cx - 110, cy), band(cx + 110, width - 40, cy)]
+    violet, deep, blue, yellow = "#5b3f8f", "#3f2c6e", "#6b7fc0", "#f2c94c"
+    body.append(petal(cx - 6, cy - 2, -24, 64, 36, deep))
+    body.append(petal(cx + 6, cy - 2, 24, 64, 36, violet))
+    body.append(petal(cx, cy + 2, -74, 56, 32, blue, yellow))
+    body.append(petal(cx, cy + 2, 74, 56, 32, blue, yellow))
+    body.append(petal(cx, cy, 180, 58, 42, yellow))
+    # Dark guide lines on the lower petals, as on a real wild pansy.
+    lines = []
+    for angle, length in [(-80, 26), (-95, 20), (-66, 20), (80, 26), (95, 20), (66, 20),
+                          (180, 32), (165, 26), (195, 26), (152, 18), (208, 18)]:
+        a = math.radians(angle)
+        x1, y1 = cx + 8 * math.sin(a), cy - 8 * math.cos(a)
+        x2, y2 = cx + length * math.sin(a), cy - length * math.cos(a)
+        lines.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                     f'stroke="{deep}" stroke-width="1.4" stroke-linecap="round" opacity="0.75"/>')
+    body.append("\n".join(lines))
+    body.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5.5" fill="#f7f4ec"/>')
+    body.append(f'<circle cx="{cx:.1f}" cy="{cy + 1:.1f}" r="2.6" fill="#7a9a3a"/>')
+    return svg(width, height, body)
+
+
 def build():
-    files = {"year-wheel.svg": wheel()}
+    files = {"pansy.svg": pansy(), "year-wheel.svg": wheel()}
     for i, m in enumerate(CARD_MOMENTS, 1):
         files[f"day-{i}.svg"] = card(m)
     return files

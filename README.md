@@ -1,5 +1,7 @@
 # Ладожский календарь
 
+<p align="center"><img src="docs/img/pansy.svg" alt="Анютины глазки между двумя полосами вышитого узора" width="720"></p>
+
 **Ladoga Calendar** is a modern authorial calendar for Lake Ladoga, the Neva river and the eastern Gulf of Finland (Russia). It expresses an ordinary Gregorian date through the nearest of 26 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar for the date. A time-of-day layer ("Ladoga time") splits daylight and night into 12 seasonal hours each and eight named periods, computed for the source of the Neva; per-day sunrise, noon, sunset and period changes are precomputed too. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE), except the vendored `vendor/astronomy-engine/` (MIT, see its LICENSE), the Kurale font in `fonts/kurale/` (SIL Open Font License 1.1), whose glyph outlines are drawn into the SVG pictures in `docs/img/`, and `tz/Europe/Moscow` (from the public-domain IANA tz database). The rest of this README is in Russian.
 
 ---
@@ -37,7 +39,7 @@
 | `scripts/build_sun.py` | Расчёт восходов и закатов для `data/sun/` |
 | `scripts/ladoga_time.py` | Показ времени суток для любого момента |
 | `scripts/check_calendar.py` | Скрипт, который независимо проверяет правила и данные |
-| `scripts/build_images.py` | Рисует картинки для этого описания (`docs/img/`) по файлам `data/`; буквы нарисованы контурами шрифта Kurale из `fonts/kurale/`: GitHub не даёт картинкам загружать шрифты |
+| `scripts/build_images.py` | Рисует картинки для этого описания (`docs/img/`): знак календаря — анютины глазки, круг года и карточки дней по файлам `data/`; буквы нарисованы контурами шрифта Kurale из `fonts/kurale/`: GitHub не даёт картинкам загружать шрифты |
 | `docs/ladoga-calendar.md` | Подробное устройство календаря и формата данных |
 | `docs/ladoga-time.md` | Время суток («Ладожское время»): сезонные часы и восемь пор |
 | `vendor/astronomy-engine/` | Библиотека Astronomy Engine 2.1.19 (лицензия MIT) для `build_sun.py` |
