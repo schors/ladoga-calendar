@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380" viewBox="0 0 900 380">
+<rect width="900" height="380" rx="18" fill="#f7f4ec"/>
+<text x="40.0" y="52.0" font-size="15" fill="#5f6f7c" text-anchor="start" font-weight="normal" font-style="italic" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >24 июня 2026, 13:30 по московскому времени</text>
+<text x="40.0" y="100.0" font-size="32" fill="#23313d" text-anchor="start" font-weight="bold" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >В девятый день Светлых ночей.</text>
+<text x="40.0" y="134.0" font-size="18" fill="#a3472b" text-anchor="start" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >в лето 1274-е · Светлые ночи</text>
+<text x="40.0" y="176.0" font-size="22" fill="#23313d" text-anchor="start" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Паужна на островах</text>
+<text x="40.0" y="204.0" font-size="16" fill="#5f6f7c" text-anchor="start" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Первый предел паужны · 7-й дневной час · Вскоре после полудня</text>
+<rect x="40.0" y="250" width="53.6" height="34" fill="#f3e3a6" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="93.6" y="250" width="53.6" height="34" fill="#f3e3a6" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="147.2" y="250" width="53.6" height="34" fill="#f3e3a6" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="200.8" y="250" width="53.6" height="34" fill="#f0d77f" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="254.4" y="250" width="53.6" height="34" fill="#f0d77f" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="308.0" y="250" width="53.6" height="34" fill="#f0d77f" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="361.6" y="250" width="53.6" height="34" fill="#e9c766" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="415.3" y="250" width="53.6" height="34" fill="#e9c766" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="468.9" y="250" width="53.6" height="34" fill="#e9c766" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="522.5" y="250" width="53.6" height="34" fill="#e3b25a" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="576.1" y="250" width="53.6" height="34" fill="#e3b25a" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="629.7" y="250" width="53.6" height="34" fill="#e3b25a" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="683.3" y="250" width="14.7" height="34" fill="#6c7d96" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="698.0" y="250" width="14.7" height="34" fill="#6c7d96" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="712.7" y="250" width="14.7" height="34" fill="#6c7d96" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="727.5" y="250" width="14.7" height="34" fill="#3f4d66" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="742.2" y="250" width="14.7" height="34" fill="#3f4d66" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="756.9" y="250" width="14.7" height="34" fill="#3f4d66" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="771.6" y="250" width="14.7" height="34" fill="#2a3449" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="786.4" y="250" width="14.7" height="34" fill="#2a3449" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="801.1" y="250" width="14.7" height="34" fill="#2a3449" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="815.8" y="250" width="14.7" height="34" fill="#56657f" stroke="#f7f4ec" stroke-width="3"/>
+<rect x="830.5" y="250" width="14.7" height="34" fill="#56657f" stroke="#f7f4ec" stroke-width="1.5"/>
+<rect x="845.3" y="250" width="14.7" height="34" fill="#56657f" stroke="#f7f4ec" stroke-width="1.5"/>
+<text x="120.4" y="306.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Утро</text>
+<text x="281.2" y="306.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Высокое солнце</text>
+<text x="442.1" y="306.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Паужна</text>
+<text x="602.9" y="306.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Низкое солнце</text>
+<text x="837.9" y="306.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Заря</text>
+<path d="M379.8,246 l-8,-14 h16 z" fill="#a3472b"/>
+<line x1="379.8" y1="246" x2="379.8" y2="284" stroke="#a3472b" stroke-width="2.5"/>
+<text x="40.0" y="238.0" font-size="13" fill="#5f6f7c" text-anchor="start" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >восход 03:33</text>
+<text x="683.3" y="238.0" font-size="13" fill="#5f6f7c" text-anchor="middle" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >закат 22:23</text>
+<text x="860.0" y="238.0" font-size="13" fill="#5f6f7c" text-anchor="end" font-weight="normal" font-style="normal" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >восход 03:33</text>
+<text x="40.0" y="354.0" font-size="14" fill="#5f6f7c" text-anchor="start" font-weight="normal" font-style="italic" font-family="'PT Serif', Georgia, 'Times New Roman', serif" >Светлые ночи: Долгий вечер, бессонные ночи и свет над водой.</text>
+</svg>
