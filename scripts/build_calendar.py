@@ -53,12 +53,11 @@ PUBLISHED_HOLIDAY_FIELDS = ["id", "month", "day", "name", "short_name", "name_ge
 NUMBER_FIELDS = ["cardinal", "days_word", "ordinal"]
 # Days after a holiday read either "after the holiday" or as days of the holiday itself.
 AFTER_KINDS = ["after", "own_day"]
-# Template kinds and placeholders of each phrase group. The short form of the
-# next day uses the holiday's after kind, so it has no template of its own.
+# Template kinds and placeholders of each phrase group.
 FORMAT_TEMPLATES = {
     "day_phrases": (["on_day", "eve", "next_day", "before"] + AFTER_KINDS,
                     set(HOLIDAY_TEXT_FIELDS) | set(NUMBER_FIELDS)),
-    "short_phrases": (["on_day", "eve", "before"] + AFTER_KINDS,
+    "short_phrases": (["on_day", "eve", "next_day", "before"] + AFTER_KINDS,
                       set(HOLIDAY_TEXT_FIELDS) | {"era_year", "count", "day_number"}),
 }
 
@@ -72,14 +71,17 @@ SUPPORTED_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
                    "interval_bounds": "start_included_end_excluded",
                    "local_boundary_rounding": "up_to_whole_second"}
 SUPPORTED_RELATIVE = {"events": SUN_EVENTS, "candidate_day_offsets": [-1, 0, 1], "selection": "nearest",
-                      "tie_breaker": "past", "display_unit": "minute", "rounding": "nearest_minute_half_up"}
+                      "tie_breaker": "past", "display_unit": "hour", "rounding": "nearest_hour_half_up",
+                      "near_minutes": 15, "soon_minutes": 60}
 # Placeholders each time template may use.
 TIME_TEMPLATE_FIELDS = {
     "seasonal": {"hour", "period_adjective"},
     "seasonal_short": {"period_letter", "hour_2d"},
     "relative_before": {"duration", "event_genitive"},
     "relative_after": {"duration", "event_genitive"},
-    "relative_near": {"event_genitive"},
+    "relative_soon_before": {"event_genitive"},
+    "relative_soon_after": {"event_genitive"},
+    "relative_near": {"near_phrase"},
     "full_text": {"day_text", "year_phrase", "pora_phrase"},
 }
 
@@ -226,10 +228,13 @@ def validate_time(defs):
         unknown = set(PLACEHOLDER.findall(template)) - allowed
         if unknown:
             raise DefinitionError(f"time.templates.{name} uses unknown placeholders {sorted(unknown)}")
-    for unit in ("hour", "minute"):
-        forms = t["unit_forms"].get(unit)
-        if not (isinstance(forms, list) and len(forms) == 3 and all(isinstance(f, str) and f for f in forms)):
-            raise DefinitionError(f"time.unit_forms.{unit} must hold three forms")
+    words = t.get("hour_words")
+    if not (isinstance(words, dict) and set(words) == {str(n) for n in range(1, 13)}
+            and all(isinstance(w, str) and w for w in words.values())):
+        raise DefinitionError("time.hour_words must hold words for 1 to 12 hours")
+    for e in SUN_EVENTS:
+        if not all(isinstance(t["event_names"].get(e, {}).get(f), str) for f in ("name", "genitive", "near_phrase")):
+            raise DefinitionError(f"time.event_names.{e} must hold name, genitive and near_phrase")
     if set(t["event_names"]) != set(SUN_EVENTS) or set(t["periods"]) != set(PERIODS):
         raise DefinitionError("time.event_names and time.periods must cover all events and periods")
 
@@ -256,12 +261,12 @@ def day_text(holiday, offset, fmt):
         return fill(phrases["eve"], names)
     if offset == 1:
         return fill(phrases["next_day"], names)
-    # Days before count down to the holiday; days after count the holiday as day one.
-    n = -offset if offset < 0 else offset + 1
+    # "Before" and "after" count plain days; days of the holiday itself count it as day one.
+    kind = "before" if offset < 0 else holiday["after_kind"]
+    n = offset + 1 if kind == "own_day" else abs(offset)
     number = fmt["numbers"].get(str(n))
     if number is None:
         raise DefinitionError(f"formatting.numbers has no entry for {n}")
-    kind = "before" if offset < 0 else holiday["after_kind"]
     return fill(phrases[kind], {**names, **{f: number[f] for f in NUMBER_FIELDS}})
 
 
@@ -269,6 +274,9 @@ def short_text(holiday, offset, era_year, fmt):
     phrases = fmt["short_phrases"]
     kind = ("on_day" if offset == 0 else "eve" if offset == -1 else "before" if offset < 0
             else holiday["after_kind"])
+    # Days of the holiday itself read "2-й д." on the next day too.
+    if offset == 1 and kind == "after":
+        kind = "next_day"
     values = {f: holiday[f] for f in HOLIDAY_TEXT_FIELDS}
     return fill(phrases[kind], {**values, "era_year": str(era_year), "count": str(abs(offset)),
                                 "day_number": str(offset + 1)})
@@ -467,7 +475,7 @@ def build_time_names(defs):
         "poras": [{f: p[f] for f in PUBLISHED_PORA_FIELDS} for p in t["poras"]],
         "periods": t["periods"],
         "event_names": t["event_names"],
-        "unit_forms": t["unit_forms"],
+        "hour_words": t["hour_words"],
         "templates": t["templates"],
         "templates_note": t["templates_note"],
     }

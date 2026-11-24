@@ -21,6 +21,9 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 EVENTS = ["sunrise", "solar_noon", "sunset"]
 STYLES = ["pora", "seasonal", "relative", "full"]
+# Steps of the relative text, as in time.relative of the definitions.
+NEAR_MINUTES = 15
+SOON_MINUTES = 60
 EPOCH = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
 
 
@@ -56,13 +59,6 @@ def parse_instant(text):
         return to_ms(moment)
     except OverflowError:
         raise TimeError("out_of_range", f"{text!r} is far outside the calendar range") from None
-
-
-def plural(n, forms):
-    """Russian form for a number: 1 минуту, 2 минуты, 5 минут; 11-14 take the third form."""
-    if 11 <= n % 100 <= 14:
-        return forms[2]
-    return forms[0] if n % 10 == 1 else forms[1] if 2 <= n % 10 <= 4 else forms[2]
 
 
 def fill(template, values):
@@ -115,19 +111,18 @@ def describe(instant_ms, events, offset_s, names):
     hour = hour_index + 1
     seasonal_text = fill(t["seasonal"], {"hour": hour, "period_adjective": period["adjective"]})
     seasonal_short = fill(t["seasonal_short"], {"period_letter": period["letter"], "hour_2d": f"{hour:02d}"})
+    # No minutes in the text: "at sunset", "soon after sunset", then whole hours.
     minutes = (abs(offset_ms) + 30000) // 60000
-    genitive = names["event_names"][event]["genitive"]
-    if minutes == 0:
-        relative_text = fill(t["relative_near"], {"event_genitive": genitive})
+    event_name = names["event_names"][event]
+    side = "before" if offset_ms < 0 else "after"
+    if minutes < NEAR_MINUTES:
+        relative_text = fill(t["relative_near"], {"near_phrase": event_name["near_phrase"]})
+    elif minutes < SOON_MINUTES:
+        relative_text = fill(t[f"relative_soon_{side}"], {"event_genitive": event_name["genitive"]})
     else:
-        h, m = divmod(minutes, 60)
-        parts = []
-        if h:
-            parts.append(f"{h} {plural(h, names['unit_forms']['hour'])}")
-        if m:
-            parts.append(f"{m} {plural(m, names['unit_forms']['minute'])}")
-        key = "relative_before" if offset_ms < 0 else "relative_after"
-        relative_text = fill(t[key], {"duration": " ".join(parts), "event_genitive": genitive})
+        hours = (minutes + 30) // 60
+        relative_text = fill(t[f"relative_{side}"], {"duration": names["hour_words"][str(hours)],
+                                                     "event_genitive": event_name["genitive"]})
 
     return {
         "instant": iso_ms(instant_ms),

@@ -62,17 +62,18 @@ REFERENCE_HOLIDAYS = [
     ("horse_stone", 10, 9, "Конь-камень", "Конь-камень", "Конь-камня", "В день Конь-камня"),
     ("earth_closing", 10, 14, "Затвор земли", "Затвор земли", "Затвора земли", "В день Затвора земли"),
     ("last_boat", 10, 24, "Последняя сойма", "Последняя сойма", "Последней соймы", "В день Последней соймы"),
-    ("ancestors", 11, 7, "Осенние Деды", "Деды", "Дедов", "На Осенние Деды"),
+    ("ancestors", 11, 7, "Осенние Деды", "Деды", "Осенних Дедов", "На Осенние Деды"),
     ("dark_water", 11, 21, "Тёмная вода", "Тёмная вода", "Тёмной воды", "В день Тёмной воды"),
     ("vainamoinen", 12, 7, "Вечер Вяйнемяйнена", "Вяйнемяйнен", "Вечера Вяйнемяйнена", "На Вечер Вяйнемяйнена"),
     ("kolyada", 12, 21, "Коляда", "Коляда", "Коляды", "На Коляду"),
 ]
 REFERENCE_FIELDS = ["id", "month", "day", "name", "short_name", "name_genitive", "on_day_phrase"]
 REFERENCE = [dict(zip(REFERENCE_FIELDS, row)) for row in REFERENCE_HOLIDAYS]
-# Holidays whose names already hold "day", "night" or "evening": the days after
-# them read "the third day after X". All others read "the third day of X".
-COUNT_AFTER_HOLIDAYS = {"veles", "smelt", "spring_day", "boats", "perun", "white_nights",
-                        "lamprey_night", "vainamoinen"}
+# Holidays that are a moment or whose names already hold "day", "night" or
+# "evening": the days after them read "two days after X" (plain count).
+# The others last, and their days read "the third day of X" (folk count).
+COUNT_AFTER_HOLIDAYS = {"veles", "smelt", "spring_day", "boats", "perun", "lamprey_night",
+                        "vainamoinen", "spring_turn", "midwinter", "horse_stone", "last_boat"}
 
 # Russian reference number words, written independently of the definitions.
 ORDINAL = {2: "второй", 3: "третий", 4: "четвёртый", 5: "пятый", 6: "шестой",
@@ -100,18 +101,21 @@ CONTROL_CASES = {
 }
 # Full expected strings for a few dates.
 CONTROL_TEXTS = {
-    "2026-11-21": ("В день Тёмной воды.", "1274 · Тёмная вода"),
-    "2026-12-10": ("В четвёртый день после Вечера Вяйнемяйнена.", "1274 · 4-й д. после Вечера Вяйнемяйнена"),
-    "2028-03-08": ("За двенадцать дней до Равноденья.", "1276 · за 12 дн. до Равноденья"),
-    "2026-02-18": ("В шестой день Ледяного залива.", "1274 · 6-й д. Ледяного залива"),
-    "2026-11-23": ("В третий день Тёмной воды.", "1274 · 3-й д. Тёмной воды"),
-    "2026-11-22": ("На другой день после Тёмной воды.", "1274 · 2-й д. Тёмной воды"),
-    "2026-03-08": ("В тринадцатый день после Волосова дня.", "1274 · 13-й д. после Волосова дня"),
-    "2026-08-10": ("В день Горячих скал.", "1274 · Горячие скалы"),
-    "2026-09-10": ("За четыре дня до Миножьей ночи.", "1274 · за 4 дн. до Миножьей ночи"),
-    "2026-09-14": ("На Миножью ночь.", "1274 · Миножья ночь"),
-    "2026-10-02": ("В канун Западного ветра.", "1274 · канун Западного ветра"),
-    "2026-10-10": ("На другой день после Конь-камня.", "1274 · 2-й д. Конь-камня"),
+    "2026-11-21": ("В день Тёмной воды.", "Тёмная вода · лето 1274"),
+    "2026-12-10": ("Через три дня после Вечера Вяйнемяйнена.", "Через 3 дн. после Вечера Вяйнемяйнена · лето 1274"),
+    "2028-03-08": ("За двенадцать дней до Равноденья.", "За 12 дн. до Равноденья · лето 1276"),
+    "2026-02-18": ("В шестой день Ледяного залива.", "6-й д. Ледяного залива · лето 1274"),
+    "2026-11-23": ("В третий день Тёмной воды.", "3-й д. Тёмной воды · лето 1274"),
+    "2026-11-22": ("На другой день после Тёмной воды.", "2-й д. Тёмной воды · лето 1274"),
+    "2026-03-08": ("Через двенадцать дней после Волосова дня.", "Через 12 дн. после Волосова дня · лето 1274"),
+    "2026-06-24": ("В девятый день Светлых ночей.", "9-й д. Светлых ночей · лето 1274"),
+    "2026-03-30": ("Через десять дней после Равноденья.", "Через 10 дн. после Равноденья · лето 1274"),
+    "2026-11-05": ("За два дня до Осенних Дедов.", "За 2 дн. до Осенних Дедов · лето 1274"),
+    "2026-08-10": ("В день Горячих скал.", "Горячие скалы · лето 1274"),
+    "2026-09-10": ("За четыре дня до Миножьей ночи.", "За 4 дн. до Миножьей ночи · лето 1274"),
+    "2026-09-14": ("На Миножью ночь.", "Миножья ночь · лето 1274"),
+    "2026-10-02": ("В канун Западного ветра.", "Канун Западного ветра · лето 1274"),
+    "2026-10-10": ("На другой день после Конь-камня.", "Назавтра после Конь-камня · лето 1274"),
 }
 
 DAILY_FIELDS = ["era_year", "anchor_id", "anchor_date", "anchor_year", "offset_days",
@@ -139,9 +143,9 @@ REFERENCE_PORAS = [
     ("afternoon", "day", 7, "Паужна", "Паужна на островах", "Паужны на островах", "в паужну на островах"),
     ("before_sunset", "day", 10, "Низкое солнце", "Низкое солнце над заливом", "Низкого солнца над заливом", "при низком солнце над заливом"),
     ("dusk", "night", 1, "Сумерки", "Сумерки у рыбацких костров", "Сумерек у рыбацких костров", "в сумерки у рыбацких костров"),
-    ("before_midnight", "night", 4, "Первый сон", "Первый сон над шхерами", "Первого сна над шхерами", "в первый сон над шхерами"),
-    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора над Вуоксой", "Глухой поры над Вуоксой", "в глухую пору над Вуоксой"),
-    ("predawn", "night", 10, "Заря", "Заря над Свирью", "Зари над Свирью", "на заре над Свирью"),
+    ("before_midnight", "night", 4, "Первый сон", "Первый сон в шхерах", "Первого сна в шхерах", "в первый сон в шхерах"),
+    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора на Вуоксе", "Глухой поры на Вуоксе", "в глухую пору на Вуоксе"),
+    ("predawn", "night", 10, "Заря", "Заря за Свирью", "Зари за Свирью", "на заре за Свирью"),
 ]
 PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase"]
 PORAS = [dict(zip(PORA_FIELDS, row)) for row in REFERENCE_PORAS]
@@ -156,22 +160,26 @@ REFERENCE_TIME_TEMPLATES = {
     "seasonal_short": "{period_letter}{hour_2d}",
     "relative_before": "За {duration} до {event_genitive}",
     "relative_after": "Через {duration} после {event_genitive}",
-    "relative_near": "Около {event_genitive}",
+    "relative_soon_before": "Незадолго до {event_genitive}",
+    "relative_soon_after": "Вскоре после {event_genitive}",
+    "relative_near": "{near_phrase}",
     "full_text": "{day_text}, {year_phrase}, {pora_phrase}.",
 }
 REFERENCE_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
                    "interval_bounds": "start_included_end_excluded",
                    "local_boundary_rounding": "up_to_whole_second"}
 REFERENCE_RELATIVE = {"events": ["sunrise", "solar_noon", "sunset"], "candidate_day_offsets": [-1, 0, 1],
-                      "selection": "nearest", "tie_breaker": "past", "display_unit": "minute",
-                      "rounding": "nearest_minute_half_up"}
+                      "selection": "nearest", "tie_breaker": "past", "display_unit": "hour",
+                      "rounding": "nearest_hour_half_up", "near_minutes": 15, "soon_minutes": 60}
 REFERENCE_TIME_NAMES = {
     "periods": {"day": {"name": "день", "adjective": "дневной", "letter": "Д"},
                 "night": {"name": "ночь", "adjective": "ночной", "letter": "Н"}},
-    "event_names": {"sunrise": {"name": "восход", "genitive": "восхода"},
-                    "solar_noon": {"name": "солнечный полдень", "genitive": "солнечного полудня"},
-                    "sunset": {"name": "закат", "genitive": "заката"}},
-    "unit_forms": {"hour": ["час", "часа", "часов"], "minute": ["минуту", "минуты", "минут"]},
+    "event_names": {"sunrise": {"name": "восход", "genitive": "восхода", "near_phrase": "На восходе"},
+                    "solar_noon": {"name": "полдень", "genitive": "полудня", "near_phrase": "В полдень"},
+                    "sunset": {"name": "закат", "genitive": "заката", "near_phrase": "На закате"}},
+    "hour_words": {"1": "час", "2": "два часа", "3": "три часа", "4": "четыре часа", "5": "пять часов",
+                   "6": "шесть часов", "7": "семь часов", "8": "восемь часов", "9": "девять часов",
+                   "10": "десять часов", "11": "одиннадцать часов", "12": "двенадцать часов"},
 }
 SUN_EVENTS = ["sunrise", "solar_noon", "sunset"]
 SUN_FIELDS = ["schema_version", "calendar_id", "model_id", "sun_data_revision", "year", "reference_location",
@@ -181,7 +189,7 @@ TIME_FIELDS = ["schema_version", "calendar_id", "calendar_version", "model_id", 
                "timezone", "utc_offset", "days", "dates"]
 TIME_RECORD_FIELDS = SUN_EVENTS + [f"{e}_local" for e in SUN_EVENTS] + ["poras"]
 TIME_NAMES_FIELDS = ["schema_version", "calendar_id", "calendar_version", "language", "model_id", "note",
-                     "reference_location", "poras", "periods", "event_names", "unit_forms", "templates",
+                     "reference_location", "poras", "periods", "event_names", "hour_words", "templates",
                      "templates_note"]
 PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour", "short_name", "name", "name_genitive",
                          "phrase", "meaning"]
@@ -249,22 +257,28 @@ def expected_record(target):
     elif offset < 0:
         cardinal, days_word, _ = number_words(-offset)
         day_text = f"За {cardinal} {days_word} до {gen}"
+    elif h["id"] in COUNT_AFTER_HOLIDAYS:
+        cardinal, days_word, _ = number_words(offset)
+        day_text = f"Через {cardinal} {days_word} после {gen}"
     else:
         # Folk counting: the holiday itself is the first day.
         _, _, ordinal = number_words(offset + 1)
-        link = "после " if h["id"] in COUNT_AFTER_HOLIDAYS else ""
-        day_text = f"В {ordinal} день {link}{gen}"
+        day_text = f"В {ordinal} день {gen}"
 
     era_year = target.year - ERA_OFFSET
     if offset == 0:
-        short = f"{era_year} · {h['name']}"
+        short = h["name"]
     elif offset == -1:
-        short = f"{era_year} · канун {gen}"
+        short = f"Канун {gen}"
     elif offset < 0:
-        short = f"{era_year} · за {-offset} дн. до {gen}"
+        short = f"За {-offset} дн. до {gen}"
+    elif h["id"] not in COUNT_AFTER_HOLIDAYS:
+        short = f"{offset + 1}-й д. {gen}"
+    elif offset == 1:
+        short = f"Назавтра после {gen}"
     else:
-        link = "после " if h["id"] in COUNT_AFTER_HOLIDAYS else ""
-        short = f"{era_year} · {offset + 1}-й д. {link}{gen}"
+        short = f"Через {offset} дн. после {gen}"
+    short = f"{short} · лето {era_year}"
     return {
         "era_year": era_year,
         "anchor_id": h["id"],
@@ -742,7 +756,7 @@ def check_time_names(defs, errors):
            "reference_location": {"id": REFERENCE_LOCATION["id"], "name": t["reference_location"]["name"]},
            "poras": [{f: p[f] for f in PUBLISHED_PORA_FIELDS} for p in t["poras"]],
            "periods": REFERENCE_TIME_NAMES["periods"], "event_names": REFERENCE_TIME_NAMES["event_names"],
-           "unit_forms": REFERENCE_TIME_NAMES["unit_forms"], "templates": REFERENCE_TIME_TEMPLATES,
+           "hour_words": REFERENCE_TIME_NAMES["hour_words"], "templates": REFERENCE_TIME_TEMPLATES,
            "templates_note": t["templates_note"]}
     for field, value in exp.items():
         if not same(tn.get(field), value):
@@ -772,20 +786,26 @@ def check_formatter(names, errors):
               for d in (22, 23, 24, 25)}
     # moment -> (pora id, seasonal hour, seasonal text, short, relative text)
     cases = [
-        (ms(24, 12, 0), ("forenoon", 5, "5-й дневной час", "Д05", "За 42 минуты до солнечного полудня")),
-        (ms(24, 1, 30), ("after_midnight", 7, "7-й ночной час", "Н07", "За 7 часов 45 минут до восхода")),
-        (ms(24, 16, 15), ("dusk", 1, "1-й ночной час", "Н01", "Около заката")),
-        (ms(24, 16, 14, 59, 999), ("before_sunset", 12, "12-й дневной час", "Д12", "Около заката")),
-        (ms(24, 16, 14, 40), ("before_sunset", 12, "12-й дневной час", "Д12", "Около заката")),
-        (ms(24, 9, 15), ("morning", 1, "1-й дневной час", "Д01", "Около восхода")),
-        (ms(24, 9, 14, 59, 999), ("predawn", 12, "12-й ночной час", "Н12", "Около восхода")),
+        (ms(24, 12, 0), ("forenoon", 5, "5-й дневной час", "Д05", "Незадолго до полудня")),
+        (ms(24, 1, 30), ("after_midnight", 7, "7-й ночной час", "Н07", "За восемь часов до восхода")),
+        (ms(24, 16, 15), ("dusk", 1, "1-й ночной час", "Н01", "На закате")),
+        (ms(24, 16, 14, 59, 999), ("before_sunset", 12, "12-й дневной час", "Д12", "На закате")),
+        (ms(24, 16, 14, 40), ("before_sunset", 12, "12-й дневной час", "Д12", "На закате")),
+        (ms(24, 9, 15), ("morning", 1, "1-й дневной час", "Д01", "На восходе")),
+        (ms(24, 9, 14, 59, 999), ("predawn", 12, "12-й ночной час", "Н12", "На восходе")),
         # First moment of hour 4: a day of 7 h has 35-minute hours, so 09:15 + 105 min.
-        (ms(24, 11, 0), ("forenoon", 4, "4-й дневной час", "Д04", "За 1 час 42 минуты до солнечного полудня")),
-        (ms(24, 10, 59, 59, 999), ("morning", 3, "3-й дневной час", "Д03", "За 1 час 42 минуты до солнечного полудня")),
+        (ms(24, 11, 0), ("forenoon", 4, "4-й дневной час", "Д04", "За два часа до полудня")),
+        (ms(24, 10, 59, 59, 999), ("morning", 3, "3-й дневной час", "Д03", "За два часа до полудня")),
         # Exactly between noon (12:42) and sunset (16:15): the past event wins.
-        (ms(24, 14, 28, 30), ("afternoon", 9, "9-й дневной час", "Д09", "Через 1 час 47 минут после солнечного полудня")),
-        (ms(24, 13, 43), ("afternoon", 8, "8-й дневной час", "Д08", "Через 1 час 1 минуту после солнечного полудня")),
-        (ms(24, 0, 0), ("before_midnight", 6, "6-й ночной час", "Н06", "Через 7 часов 45 минут после заката")),
+        (ms(24, 14, 28, 30), ("afternoon", 9, "9-й дневной час", "Д09", "Через два часа после полудня")),
+        (ms(24, 13, 43), ("afternoon", 8, "8-й дневной час", "Д08", "Через час после полудня")),
+        (ms(24, 0, 0), ("before_midnight", 6, "6-й ночной час", "Н06", "Через восемь часов после заката")),
+        # Step edges: 14 min 29 s and 14 min 30 s; 59 min 29 s and 59 min 30 s; 90 min rounds up.
+        (ms(24, 16, 29, 29), ("dusk", 1, "1-й ночной час", "Н01", "На закате")),
+        (ms(24, 16, 29, 30), ("dusk", 1, "1-й ночной час", "Н01", "Вскоре после заката")),
+        (ms(24, 17, 14, 29), ("dusk", 1, "1-й ночной час", "Н01", "Вскоре после заката")),
+        (ms(24, 17, 14, 30), ("dusk", 1, "1-й ночной час", "Н01", "Через час после заката")),
+        (ms(24, 17, 45), ("dusk", 2, "2-й ночной час", "Н02", "Через два часа после заката")),
     ]
     for moment, (pid, hour, seasonal, short, relative) in cases:
         try:
@@ -796,15 +816,12 @@ def check_formatter(names, errors):
             got = f"{type(exc).__name__}: {exc}"
         if got != (pid, hour, seasonal, short, relative):
             errors.append(f"formatter {lt.iso_ms(moment, REFERENCE_UTC_OFFSET)}: got {got}, expected {(pid, hour, seasonal, short, relative)}")
-    # Plural forms and the refusal of a bare local time.
-    for n, form in [(1, "минуту"), (2, "минуты"), (5, "минут"), (11, "минут"), (21, "минуту"), (22, "минуты"), (14, "минут")]:
-        if lt.plural(n, names["unit_forms"]["minute"]) != form:
-            errors.append(f"formatter: {n} takes {form!r}")
+    # The refusal of a bare local time is checked below.
     # The command line on real data, including the full calendar-and-pora sentence.
     real = [
         (["2026-11-24T12:00:00+03:00", "--style", "full"],
          "В четвёртый день Тёмной воды, в лето 1274-е от ладожского начала, при высоком солнце над Ладогой."),
-        (["2026-06-21T23:50:00+03:00"], "Первый сон над шхерами"),
+        (["2026-06-21T23:50:00+03:00"], "Первый сон в шхерах"),
         (["2026-06-21T23:50:00+03:00", "--style", "seasonal"], "4-й ночной час"),
     ]
     for argv, expected in real:

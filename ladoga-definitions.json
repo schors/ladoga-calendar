@@ -1,7 +1,7 @@
 {
-  "schema_version": "3.0.0",
+  "schema_version": "4.0.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.0.0",
+  "calendar_version": "2.1.0",
   "name": "Ладожский календарь",
   "status": "authorial",
   "locale": "ru-RU",
@@ -70,7 +70,7 @@
       "eve": "В канун {name_genitive}",
       "next_day": "На другой день после {name_genitive}",
       "before": "За {cardinal} {days_word} до {name_genitive}",
-      "after": "В {ordinal} день после {name_genitive}",
+      "after": "Через {cardinal} {days_word} после {name_genitive}",
       "own_day": "В {ordinal} день {name_genitive}"
     },
     "day_phrase_rules": {
@@ -78,9 +78,9 @@
       "eve": "offset_days = -1",
       "next_day": "offset_days = +1",
       "before": "offset_days <= -2; число берётся из numbers[|offset_days|]",
-      "after": "offset_days >= 2 и after_kind праздника = after; число берётся из numbers[offset_days + 1]: сам праздник считается первым днём, как в народном счёте («в третий день» — через два дня)",
-      "own_day": "то же для after_kind = own_day: дни считаются днями самого праздника, без слова «после»",
-      "after_kind_note": "after_kind = after ставится праздникам, в названии которых уже есть «день», «ночь» или «вечер»: иначе вышло бы «в третий день Волосова дня»"
+      "after": "offset_days >= 2 и after_kind праздника = after; обычный счёт, как у «до»: число берётся из numbers[offset_days] («Через два дня после» — смещение +2)",
+      "own_day": "offset_days >= 2 и after_kind = own_day; народный счёт, сам праздник — первый день: число берётся из numbers[offset_days + 1] («В третий день» — смещение +2)",
+      "after_kind_note": "after_kind = after — у праздников-мгновений и праздников, в названии которых уже есть «день», «ночь» или «вечер»: иначе вышло бы «в третий день Волосова дня» или «в десятый день Равноденья». own_day — у праздников, что длятся: Коляда, Купала, Тёмная вода, Светлые ночи."
     },
     "numbers": {
       "2": {
@@ -147,13 +147,14 @@
     "text_template": "{day_text}.",
     "full_text_template": "{day_text}, {year_phrase}.",
     "short_phrases": {
-      "on_day": "{era_year} · {name}",
-      "eve": "{era_year} · канун {name_genitive}",
-      "before": "{era_year} · за {count} дн. до {name_genitive}",
-      "after": "{era_year} · {day_number}-й д. после {name_genitive}",
-      "own_day": "{era_year} · {day_number}-й д. {name_genitive}"
+      "on_day": "{name} · лето {era_year}",
+      "eve": "Канун {name_genitive} · лето {era_year}",
+      "next_day": "Назавтра после {name_genitive} · лето {era_year}",
+      "before": "За {count} дн. до {name_genitive} · лето {era_year}",
+      "after": "Через {count} дн. после {name_genitive} · лето {era_year}",
+      "own_day": "{day_number}-й д. {name_genitive} · лето {era_year}"
     },
-    "short_phrases_note": "Короткая запись для узких мест: год, расстояние в днях цифрами и название праздника в родительном падеже. {count} — модуль смещения цифрами (дни до праздника). {day_number} — номер дня после праздника, если сам праздник — первый день: смещение + 1. Для другого дня после праздника берётся запись after или own_day, как у его after_kind: «2-й д. Тёмной воды».",
+    "short_phrases_note": "Короткая запись для узких мест: сначала день, в конце год, чтобы при обрезке пропал год, а не день. {count} — модуль смещения цифрами, {day_number} — номер дня по народному счёту (смещение + 1). next_day — другой день у праздников с after_kind = after; у own_day другой день пишется «2-й д.».",
     "rule_fields_note": "Поля anchor_selection, tie_breaker и candidate_year_offsets описывают правило выбора опоры. Генератор знает только эти значения и откажется собирать данные при других."
   },
   "holidays": [
@@ -181,7 +182,7 @@
       "short_name": "Перелом зимы",
       "name_genitive": "Перелома зимы",
       "on_day_phrase": "В день Перелома зимы",
-      "after_kind": "own_day",
+      "after_kind": "after",
       "aliases": [],
       "month": 2,
       "day": 2,
@@ -240,7 +241,7 @@
       "short_name": "Равноденье",
       "name_genitive": "Равноденья",
       "on_day_phrase": "На Равноденье",
-      "after_kind": "own_day",
+      "after_kind": "after",
       "aliases": [],
       "month": 3,
       "day": 20,
@@ -338,7 +339,7 @@
       "short_name": "Светлые ночи",
       "name_genitive": "Светлых ночей",
       "on_day_phrase": "На Светлые ночи",
-      "after_kind": "after",
+      "after_kind": "own_day",
       "aliases": [],
       "month": 6,
       "day": 16,
@@ -538,7 +539,7 @@
       "short_name": "Конь-камень",
       "name_genitive": "Конь-камня",
       "on_day_phrase": "В день Конь-камня",
-      "after_kind": "own_day",
+      "after_kind": "after",
       "aliases": [],
       "month": 10,
       "day": 9,
@@ -578,7 +579,7 @@
       "short_name": "Последняя сойма",
       "name_genitive": "Последней соймы",
       "on_day_phrase": "В день Последней соймы",
-      "after_kind": "own_day",
+      "after_kind": "after",
       "aliases": [],
       "month": 10,
       "day": 24,
@@ -596,7 +597,7 @@
       "id": "ancestors",
       "name": "Осенние Деды",
       "short_name": "Деды",
-      "name_genitive": "Дедов",
+      "name_genitive": "Осенних Дедов",
       "on_day_phrase": "На Осенние Деды",
       "after_kind": "own_day",
       "aliases": [
@@ -802,8 +803,10 @@
       ],
       "selection": "nearest",
       "tie_breaker": "past",
-      "display_unit": "minute",
-      "rounding": "nearest_minute_half_up"
+      "display_unit": "hour",
+      "rounding": "nearest_hour_half_up",
+      "near_minutes": 15,
+      "soon_minutes": 60
     },
     "poras": [
       {
@@ -867,9 +870,9 @@
         "first_hour": 4,
         "last_hour": 6,
         "short_name": "Первый сон",
-        "name": "Первый сон над шхерами",
-        "name_genitive": "Первого сна над шхерами",
-        "phrase": "в первый сон над шхерами",
+        "name": "Первый сон в шхерах",
+        "name_genitive": "Первого сна в шхерах",
+        "phrase": "в первый сон в шхерах",
         "meaning": "Вторая четверть ночи, до её середины: время первого, самого крепкого сна. Образ — скалистые шхеры северной Ладоги."
       },
       {
@@ -878,9 +881,9 @@
         "first_hour": 7,
         "last_hour": 9,
         "short_name": "Глухая пора",
-        "name": "Глухая пора над Вуоксой",
-        "name_genitive": "Глухой поры над Вуоксой",
-        "phrase": "в глухую пору над Вуоксой",
+        "name": "Глухая пора на Вуоксе",
+        "name_genitive": "Глухой поры на Вуоксе",
+        "phrase": "в глухую пору на Вуоксе",
         "meaning": "Третья четверть ночи, после её середины. Образ — Вуокса, карельская река, что течёт к Ладоге через леса и камни. В светлые ночи может быть светло: пора не обещает темноты."
       },
       {
@@ -889,10 +892,10 @@
         "first_hour": 10,
         "last_hour": 12,
         "short_name": "Заря",
-        "name": "Заря над Свирью",
-        "name_genitive": "Зари над Свирью",
-        "phrase": "на заре над Свирью",
-        "meaning": "Последняя четверть ночи перед восходом. Свирь впадает в Ладогу с востока, откуда встаёт заря."
+        "name": "Заря за Свирью",
+        "name_genitive": "Зари за Свирью",
+        "phrase": "на заре за Свирью",
+        "meaning": "Последняя четверть ночи перед восходом. Свирь впадает в Ладогу с востока, и заря встаёт за ней. Зимой эта пора длится несколько часов, дольше настоящей зари."
       }
     ],
     "periods": {
@@ -910,38 +913,45 @@
     "event_names": {
       "sunrise": {
         "name": "восход",
-        "genitive": "восхода"
+        "genitive": "восхода",
+        "near_phrase": "На восходе"
       },
       "solar_noon": {
-        "name": "солнечный полдень",
-        "genitive": "солнечного полудня"
+        "name": "полдень",
+        "genitive": "полудня",
+        "near_phrase": "В полдень"
       },
       "sunset": {
         "name": "закат",
-        "genitive": "заката"
+        "genitive": "заката",
+        "near_phrase": "На закате"
       }
     },
-    "unit_forms": {
-      "hour": [
-        "час",
-        "часа",
-        "часов"
-      ],
-      "minute": [
-        "минуту",
-        "минуты",
-        "минут"
-      ]
+    "hour_words": {
+      "1": "час",
+      "2": "два часа",
+      "3": "три часа",
+      "4": "четыре часа",
+      "5": "пять часов",
+      "6": "шесть часов",
+      "7": "семь часов",
+      "8": "восемь часов",
+      "9": "девять часов",
+      "10": "десять часов",
+      "11": "одиннадцать часов",
+      "12": "двенадцать часов"
     },
     "templates": {
       "seasonal": "{hour}-й {period_adjective} час",
       "seasonal_short": "{period_letter}{hour_2d}",
       "relative_before": "За {duration} до {event_genitive}",
       "relative_after": "Через {duration} после {event_genitive}",
-      "relative_near": "Около {event_genitive}",
+      "relative_soon_before": "Незадолго до {event_genitive}",
+      "relative_soon_after": "Вскоре после {event_genitive}",
+      "relative_near": "{near_phrase}",
       "full_text": "{day_text}, {year_phrase}, {pora_phrase}."
     },
-    "templates_note": "Откуда берутся значения: hour — номер сезонного часа, hour_2d — он же из двух цифр; period_adjective и period_letter — из periods; event_genitive — из event_names; duration — часы и минуты с формами из unit_forms; pora_phrase — poras[].phrase; day_text и year_phrase — из файла года календаря. unit_forms — формы после «за» и «через» для чисел, оканчивающихся на 1, на 2–4 и остальных; числа, оканчивающиеся на 11–14, берут третью форму.",
+    "templates_note": "Откуда берутся значения: hour — номер сезонного часа, hour_2d — он же из двух цифр; period_adjective и period_letter — из periods; event_genitive и near_phrase — из event_names; duration — число обычных часов словами из hour_words; pora_phrase — poras[].phrase; day_text и year_phrase — из файла года календаря. Минуты не показываются: меньше near_minutes до события или после него — relative_near («На закате»), меньше soon_minutes — relative_soon_before или relative_soon_after, иначе — целые часы, половина часа округляется вверх.",
     "source_ids": [
       "queens_virtual_dial",
       "usno_rise_set",

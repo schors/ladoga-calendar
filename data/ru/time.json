@@ -1,7 +1,7 @@
 {
-  "schema_version": "3.0.0",
+  "schema_version": "4.0.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.0.0",
+  "calendar_version": "2.1.0",
   "language": "ru",
   "model_id": "ladoga-solar-v1",
   "note": "Названия пор, частей суток и солнечных событий, шаблоны подписей времени. Пора находится по id из data/time/<год>.json.",
@@ -71,9 +71,9 @@
       "first_hour": 4,
       "last_hour": 6,
       "short_name": "Первый сон",
-      "name": "Первый сон над шхерами",
-      "name_genitive": "Первого сна над шхерами",
-      "phrase": "в первый сон над шхерами",
+      "name": "Первый сон в шхерах",
+      "name_genitive": "Первого сна в шхерах",
+      "phrase": "в первый сон в шхерах",
       "meaning": "Вторая четверть ночи, до её середины: время первого, самого крепкого сна. Образ — скалистые шхеры северной Ладоги."
     },
     {
@@ -82,9 +82,9 @@
       "first_hour": 7,
       "last_hour": 9,
       "short_name": "Глухая пора",
-      "name": "Глухая пора над Вуоксой",
-      "name_genitive": "Глухой поры над Вуоксой",
-      "phrase": "в глухую пору над Вуоксой",
+      "name": "Глухая пора на Вуоксе",
+      "name_genitive": "Глухой поры на Вуоксе",
+      "phrase": "в глухую пору на Вуоксе",
       "meaning": "Третья четверть ночи, после её середины. Образ — Вуокса, карельская река, что течёт к Ладоге через леса и камни. В светлые ночи может быть светло: пора не обещает темноты."
     },
     {
@@ -93,10 +93,10 @@
       "first_hour": 10,
       "last_hour": 12,
       "short_name": "Заря",
-      "name": "Заря над Свирью",
-      "name_genitive": "Зари над Свирью",
-      "phrase": "на заре над Свирью",
-      "meaning": "Последняя четверть ночи перед восходом. Свирь впадает в Ладогу с востока, откуда встаёт заря."
+      "name": "Заря за Свирью",
+      "name_genitive": "Зари за Свирью",
+      "phrase": "на заре за Свирью",
+      "meaning": "Последняя четверть ночи перед восходом. Свирь впадает в Ладогу с востока, и заря встаёт за ней. Зимой эта пора длится несколько часов, дольше настоящей зари."
     }
   ],
   "periods": {
@@ -114,36 +114,43 @@
   "event_names": {
     "sunrise": {
       "name": "восход",
-      "genitive": "восхода"
+      "genitive": "восхода",
+      "near_phrase": "На восходе"
     },
     "solar_noon": {
-      "name": "солнечный полдень",
-      "genitive": "солнечного полудня"
+      "name": "полдень",
+      "genitive": "полудня",
+      "near_phrase": "В полдень"
     },
     "sunset": {
       "name": "закат",
-      "genitive": "заката"
+      "genitive": "заката",
+      "near_phrase": "На закате"
     }
   },
-  "unit_forms": {
-    "hour": [
-      "час",
-      "часа",
-      "часов"
-    ],
-    "minute": [
-      "минуту",
-      "минуты",
-      "минут"
-    ]
+  "hour_words": {
+    "1": "час",
+    "2": "два часа",
+    "3": "три часа",
+    "4": "четыре часа",
+    "5": "пять часов",
+    "6": "шесть часов",
+    "7": "семь часов",
+    "8": "восемь часов",
+    "9": "девять часов",
+    "10": "десять часов",
+    "11": "одиннадцать часов",
+    "12": "двенадцать часов"
   },
   "templates": {
     "seasonal": "{hour}-й {period_adjective} час",
     "seasonal_short": "{period_letter}{hour_2d}",
     "relative_before": "За {duration} до {event_genitive}",
     "relative_after": "Через {duration} после {event_genitive}",
-    "relative_near": "Около {event_genitive}",
+    "relative_soon_before": "Незадолго до {event_genitive}",
+    "relative_soon_after": "Вскоре после {event_genitive}",
+    "relative_near": "{near_phrase}",
     "full_text": "{day_text}, {year_phrase}, {pora_phrase}."
   },
-  "templates_note": "Откуда берутся значения: hour — номер сезонного часа, hour_2d — он же из двух цифр; period_adjective и period_letter — из periods; event_genitive — из event_names; duration — часы и минуты с формами из unit_forms; pora_phrase — poras[].phrase; day_text и year_phrase — из файла года календаря. unit_forms — формы после «за» и «через» для чисел, оканчивающихся на 1, на 2–4 и остальных; числа, оканчивающиеся на 11–14, берут третью форму."
+  "templates_note": "Откуда берутся значения: hour — номер сезонного часа, hour_2d — он же из двух цифр; period_adjective и period_letter — из periods; event_genitive и near_phrase — из event_names; duration — число обычных часов словами из hour_words; pora_phrase — poras[].phrase; day_text и year_phrase — из файла года календаря. Минуты не показываются: меньше near_minutes до события или после него — relative_near («На закате»), меньше soon_minutes — relative_soon_before или relative_soon_after, иначе — целые часы, половина часа округляется вверх."
 }
