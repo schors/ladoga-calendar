@@ -9,6 +9,8 @@ Only the standard library is used. The pictures are illustrations: the
 calendar itself lives in data/, and these files are drawn from it.
 """
 import argparse
+import base64
+import hashlib
 import datetime as dt
 import json
 import math
@@ -37,7 +39,11 @@ PAPER = "#f7f4ec"
 ACCENT = "#a3472b"
 DAY_FILL = ["#f3e3a6", "#f0d77f", "#e9c766", "#e3b25a"]
 NIGHT_FILL = ["#6c7d96", "#3f4d66", "#2a3449", "#56657f"]
-FONT = "font-family=\"'PT Serif', Georgia, 'Times New Roman', serif\""
+FONT = "font-family=\"Kurale, Georgia, 'Times New Roman', serif\""
+# Kurale by Eduardo Tunni, SIL Open Font License 1.1 (fonts/kurale/OFL.txt).
+# It is embedded into each picture: an SVG shown as an image cannot load fonts from outside.
+FONT_FILE = ROOT / "fonts" / "kurale" / "Kurale-Regular.ttf"
+FONT_SHA256 = "6055aaca6870ca64210dd81fa47f8bb71595a9c8fbe570351ed45a15f1a0820d"
 
 
 def load(path):
@@ -49,9 +55,44 @@ def text(x, y, s, size=16, fill=INK, anchor="start", weight="normal", style="nor
             f'font-weight="{weight}" font-style="{style}" {FONT} {extra}>{escape(s)}</text>')
 
 
+def rhomb(x, y, r, fill="none", stroke=ACCENT, width=1.2):
+    return (f'<path d="M{x:.1f},{y - r:.1f} L{x + r:.1f},{y:.1f} L{x:.1f},{y + r:.1f} L{x - r:.1f},{y:.1f} Z" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="{width}"/>')
+
+
+def band(x0, x1, y):
+    """A thin ornament row: open rhombs with a dot, small solid rhombs between them.
+
+    A light hint of North Russian and Karelian embroidery, not a copy of any piece.
+    """
+    step = 28
+    n = int((x1 - x0) // step)
+    pad = (x1 - x0 - n * step) / 2
+    parts = [f'<g opacity="0.55">',
+             f'<line x1="{x0:.1f}" y1="{y - 9:.1f}" x2="{x1:.1f}" y2="{y - 9:.1f}" stroke="{ACCENT}" stroke-width="0.8"/>',
+             f'<line x1="{x0:.1f}" y1="{y + 9:.1f}" x2="{x1:.1f}" y2="{y + 9:.1f}" stroke="{ACCENT}" stroke-width="0.8"/>']
+    for k in range(n):
+        cx = x0 + pad + step * (k + 0.5)
+        parts.append(rhomb(cx, y, 6))
+        parts.append(f'<circle cx="{cx:.1f}" cy="{y:.1f}" r="1.6" fill="{ACCENT}"/>')
+        if k < n - 1:
+            parts.append(rhomb(cx + step / 2, y, 2.4, fill=ACCENT, stroke="none"))
+    parts.append("</g>")
+    return "\n".join(parts)
+
+
+def font_face():
+    raw = FONT_FILE.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != FONT_SHA256:
+        raise SystemExit(f"FAILED: {FONT_FILE.relative_to(ROOT)} does not match its SHA-256")
+    data = base64.b64encode(raw).decode("ascii")
+    return (f"<style>@font-face{{font-family:Kurale;src:url(data:font/ttf;base64,{data}) "
+            f"format('truetype');}}</style>\n")
+
+
 def svg(width, height, body):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
-            f'viewBox="0 0 {width} {height}">\n'
+            f'viewBox="0 0 {width} {height}">\n' + font_face() +
             f'<rect width="{width}" height="{height}" rx="18" fill="{PAPER}"/>\n'
             + "\n".join(body) + "\n</svg>\n")
 
@@ -114,10 +155,20 @@ def wheel():
             anchor = "start" if side == "right" else "end"
             label = f"{date}  {h['name']}" if side == "right" else f"{h['name']}  {date}"
             body.append(text(tx, y + 5, label, 15, INK, anchor, extra='xml:space="preserve"'))
+    # A ring of small rhombs inside the months, like an embroidered rosette.
+    ring = ['<g opacity="0.5">']
+    for k in range(36):
+        a = 2 * math.pi * k / 36
+        x, y = point(a, r_in - 14)
+        ring.append(rhomb(x, y, 3.2, fill=ACCENT if k % 3 == 0 else "none", width=1))
+    ring.append("</g>")
+    body.append("\n".join(ring))
+    body.append(band(40, width - 40, 34))
+    body.append(band(40, width - 40, height - 34))
     era = WHEEL_YEAR - 752
-    body.append(text(cx, cy - 16, "Ладожский", 22, INK, "middle", "bold"))
-    body.append(text(cx, cy + 10, "календарь", 22, INK, "middle", "bold"))
-    body.append(text(cx, cy + 38, f"{WHEEL_YEAR} — лето {era}-е", 14, SOFT, "middle", style="italic"))
+    body.append(text(cx, cy - 16, "Ладожский", 26, INK, "middle"))
+    body.append(text(cx, cy + 10, "календарь", 26, INK, "middle"))
+    body.append(text(cx, cy + 38, f"{WHEEL_YEAR} — лето {era}-е", 14, SOFT, "middle"))
     return svg(width, height, body)
 
 
@@ -148,15 +199,15 @@ def card(moment):
     rise0, set0, rise1 = ts(start_date, "sunrise"), ts(start_date, "sunset"), ts(start_date + dt.timedelta(1), "sunrise")
     total = (rise1 - rise0).total_seconds()
 
-    width, height = 900, 380
-    x0, bar_w, bar_y, bar_h = 40, 820, 250, 34
+    width, height = 900, 400
+    x0, bar_w, bar_y, bar_h = 40, 820, 262, 34
     body = []
-    body.append(text(x0, 52, f'{civil.day} {["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][civil.month - 1]} {civil.year}, {r["civil_time"][:5]} по московскому времени', 15, SOFT, style="italic"))
-    body.append(text(x0, 100, day["text"], 32, INK, weight="bold"))
-    body.append(text(x0, 134, f'в лето {day["era_year"]}-е · {anchor["name"]}', 18, ACCENT))
+    body.append(text(x0, 62, f'{civil.day} {["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][civil.month - 1]} {civil.year}, {r["civil_time"][:5]} по московскому времени', 15, SOFT))
+    body.append(text(x0, 108, day["text"], 36, INK))
+    body.append(text(x0, 142, f'в лето {day["era_year"]}-е · {anchor["name"]}', 18, ACCENT))
     disp = r["display"]
-    body.append(text(x0, 176, disp["pora"], 22, INK))
-    body.append(text(x0, 204, f'{disp["part"]} · {disp["seasonal"]} · {disp["relative"]}', 16, SOFT))
+    body.append(text(x0, 184, disp["pora"], 22, INK))
+    body.append(text(x0, 212, f'{disp["part"]} · {disp["seasonal"]} · {disp["relative"]}', 16, SOFT))
 
     poras = names["poras"]
     for i in range(24):
@@ -185,7 +236,9 @@ def card(moment):
     sx = x0 + bar_w * (set0 - rise0).total_seconds() / total
     body.append(text(sx, bar_y - 12, f'закат {set0:%H:%M}', 13, SOFT, "middle"))
     body.append(text(x0 + bar_w, bar_y - 12, f'восход {rise1:%H:%M}', 13, SOFT, "end"))
-    body.append(text(x0, height - 26, f'{anchor["name"]}: {anchor["meaning"]}', 14, SOFT, style="italic"))
+    body.append(text(x0, height - 46, f'{anchor["name"]}: {anchor["meaning"]}', 14, SOFT))
+    body.append(band(24, width - 24, 22))
+    body.append(band(24, width - 24, height - 20))
     return svg(width, height, body)
 
 
