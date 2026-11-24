@@ -1,7 +1,7 @@
 {
-  "schema_version": "4.0.0",
+  "schema_version": "4.1.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.2.0",
+  "calendar_version": "2.3.0",
   "name": "Ладожский календарь",
   "definitions": "../ladoga-definitions.json",
   "timezone": "Europe/Moscow",
@@ -93,7 +93,7 @@
     "time_file": "time[YYYY] — восход, полдень и закат по дням и смены пор по местному времени",
     "current_pora": "time dates[YYYY-MM-DD].poras — пора последней записи, время которой не позже текущего местного времени",
     "pora_names": "time_names[language] — названия пор по id, шаблоны подписей времени",
-    "time_phrase": "time_names templates.full_text: {day_text} и {year_phrase} — из файла года, {pora_phrase} — poras[].phrase из time_names. Сезонный час и подпись «за … до восхода» требуют расчёта: scripts/ladoga_time.py",
+    "time_phrase": "time_names templates.full_text: {day_text} и {year_phrase} — из файла года, {pora_short_phrase} — poras[].short_phrase из time_names. Сезонный час и подпись «за … до восхода» требуют расчёта: scripts/ladoga_time.py",
     "sun_file": "sun[YYYY] — точные моменты восхода, полудня и заката в UTC; edge_events — соседние дни за краями диапазона",
     "outside_range": "Если года нет в files, дата вне диапазона. Если в файле года нет даты, такой даты не существует. Нельзя молча подставлять другой год.",
     "editing": "Файлы в этой папке создаются скриптами scripts/build_sun.py (папка sun/) и scripts/build_calendar.py (остальное) из ladoga-definitions.json. Вручную их не правят."

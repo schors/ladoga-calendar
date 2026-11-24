@@ -1,7 +1,7 @@
 {
-  "schema_version": "4.0.0",
+  "schema_version": "4.1.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.2.0",
+  "calendar_version": "2.3.0",
   "language": "ru",
   "year": 2036,
   "era_year": 1284,

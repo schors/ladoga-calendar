@@ -138,16 +138,16 @@ SHARED_FIELDS = ["schema_version", "calendar_id", "calendar_version"]
 SUN_DIR, TIME_DIR = "sun", "time"
 # (id, period, first_hour, short_name, name, name_genitive, phrase)
 REFERENCE_PORAS = [
-    ("morning", "day", 1, "Утро", "Утро на Неве", "Утра на Неве", "утром на Неве"),
-    ("forenoon", "day", 4, "Высокое солнце", "Высокое солнце над Ладогой", "Высокого солнца над Ладогой", "при высоком солнце над Ладогой"),
-    ("afternoon", "day", 7, "Паужна", "Паужна на островах", "Паужны на островах", "в паужну на островах"),
-    ("before_sunset", "day", 10, "Низкое солнце", "Низкое солнце над заливом", "Низкого солнца над заливом", "при низком солнце над заливом"),
-    ("dusk", "night", 1, "Сумерки", "Сумерки у рыбацких костров", "Сумерек у рыбацких костров", "в сумерки у рыбацких костров"),
-    ("before_midnight", "night", 4, "Первый сон", "Первый сон в шхерах", "Первого сна в шхерах", "в первый сон в шхерах"),
-    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора на Вуоксе", "Глухой поры на Вуоксе", "в глухую пору на Вуоксе"),
-    ("predawn", "night", 10, "Заря", "Заря за Свирью", "Зари за Свирью", "на заре за Свирью"),
+    ("morning", "day", 1, "Утро", "Утро на Неве", "Утра на Неве", "утром на Неве", "утром"),
+    ("forenoon", "day", 4, "Высокое солнце", "Высокое солнце над Ладогой", "Высокого солнца над Ладогой", "при высоком солнце над Ладогой", "при высоком солнце"),
+    ("afternoon", "day", 7, "Паужна", "Паужна на островах", "Паужны на островах", "в паужну на островах", "в паужну"),
+    ("before_sunset", "day", 10, "Низкое солнце", "Низкое солнце над заливом", "Низкого солнца над заливом", "при низком солнце над заливом", "при низком солнце"),
+    ("dusk", "night", 1, "Сумерки", "Сумерки у рыбацких костров", "Сумерек у рыбацких костров", "в сумерки у рыбацких костров", "в сумерки"),
+    ("before_midnight", "night", 4, "Первый сон", "Первый сон в шхерах", "Первого сна в шхерах", "в первый сон в шхерах", "в первый сон"),
+    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора на Вуоксе", "Глухой поры на Вуоксе", "в глухую пору на Вуоксе", "в глухую пору"),
+    ("predawn", "night", 10, "Заря", "Заря за Свирью", "Зари за Свирью", "на заре за Свирью", "на заре"),
 ]
-PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase"]
+PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase", "short_phrase"]
 PORAS = [dict(zip(PORA_FIELDS, row)) for row in REFERENCE_PORAS]
 REFERENCE_LOCATION = {"id": "neva_source", "latitude_deg": 59.95, "longitude_deg": 31.04, "elevation_m": 0.0}
 SUN_ALTITUDE_DEG = -50 / 60
@@ -163,7 +163,7 @@ REFERENCE_TIME_TEMPLATES = {
     "relative_soon_before": "Незадолго до {event_genitive}",
     "relative_soon_after": "Вскоре после {event_genitive}",
     "relative_near": "{near_phrase}",
-    "full_text": "{day_text}, {year_phrase}, {pora_phrase}.",
+    "full_text": "{day_text}, {year_phrase}, {pora_short_phrase}.",
 }
 REFERENCE_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
                    "interval_bounds": "start_included_end_excluded",
@@ -192,7 +192,7 @@ TIME_NAMES_FIELDS = ["schema_version", "calendar_id", "calendar_version", "langu
                      "reference_location", "poras", "periods", "event_names", "hour_words", "templates",
                      "templates_note"]
 PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour", "short_name", "name", "name_genitive",
-                         "phrase", "meaning"]
+                         "phrase", "short_phrase", "meaning"]
 
 
 class CheckError(Exception):
@@ -820,7 +820,7 @@ def check_formatter(names, errors):
     # The command line on real data, including the full calendar-and-pora sentence.
     real = [
         (["2026-11-24T12:00:00+03:00", "--style", "full"],
-         "В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце над Ладогой."),
+         "В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце."),
         (["2026-06-21T23:50:00+03:00"], "Первый сон в шхерах"),
         (["2026-06-21T23:50:00+03:00", "--style", "seasonal"], "4-й ночной час"),
     ]

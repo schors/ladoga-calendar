@@ -65,7 +65,7 @@ TIME_DIR = "time"
 SUN_DIR = "sun"
 SUN_EVENTS = ["sunrise", "solar_noon", "sunset"]
 PERIODS = ["day", "night"]
-PORA_TEXT_FIELDS = ["short_name", "name", "name_genitive", "phrase", "meaning"]
+PORA_TEXT_FIELDS = ["short_name", "name", "name_genitive", "phrase", "short_phrase", "meaning"]
 PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour"] + PORA_TEXT_FIELDS
 SUPPORTED_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
                    "interval_bounds": "start_included_end_excluded",
@@ -82,7 +82,7 @@ TIME_TEMPLATE_FIELDS = {
     "relative_soon_before": {"event_genitive"},
     "relative_soon_after": {"event_genitive"},
     "relative_near": {"near_phrase"},
-    "full_text": {"day_text", "year_phrase", "pora_phrase"},
+    "full_text": {"day_text", "year_phrase", "pora_short_phrase"},
 }
 
 
@@ -524,7 +524,7 @@ def build_index(defs, years):
             "time_file": "time[YYYY] — восход, полдень и закат по дням и смены пор по местному времени",
             "current_pora": "time dates[YYYY-MM-DD].poras — пора последней записи, время которой не позже текущего местного времени",
             "pora_names": "time_names[language] — названия пор по id, шаблоны подписей времени",
-            "time_phrase": "time_names templates.full_text: {day_text} и {year_phrase} — из файла года, {pora_phrase} — poras[].phrase из time_names. Сезонный час и подпись «за … до восхода» требуют расчёта: scripts/ladoga_time.py",
+            "time_phrase": "time_names templates.full_text: {day_text} и {year_phrase} — из файла года, {pora_short_phrase} — poras[].short_phrase из time_names. Сезонный час и подпись «за … до восхода» требуют расчёта: scripts/ladoga_time.py",
             "sun_file": "sun[YYYY] — точные моменты восхода, полудня и заката в UTC; edge_events — соседние дни за краями диапазона",
             "outside_range": "Если года нет в files, дата вне диапазона. Если в файле года нет даты, такой даты не существует. Нельзя молча подставлять другой год.",
             "editing": "Файлы в этой папке создаются скриптами scripts/build_sun.py (папка sun/) и scripts/build_calendar.py (остальное) из ladoga-definitions.json. Вручную их не правят.",

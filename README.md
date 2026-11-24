@@ -131,7 +131,7 @@ jq -r '.holidays[] | "\(.day).\(.month) \(.name)"' data/ru/holidays.json
 
 ```bash
 python3 scripts/ladoga_time.py 2026-11-24T12:00:00+03:00 --style full
-# В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце над Ладогой.
+# В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце.
 python3 scripts/ladoga_time.py now                     # current pora
 python3 scripts/ladoga_time.py 2026-11-24T12:00:00+03:00 --style relative
 # Незадолго до полудня

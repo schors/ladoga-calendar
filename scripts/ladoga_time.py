@@ -132,7 +132,7 @@ def describe(instant_ms, events, offset_s, names):
                    "start_civil_date": start_date.isoformat(), "elapsed_ms": elapsed, "duration_ms": duration},
         "seasonal": {"hour": hour, "hour_progress": remainder / duration,
                      "progress_percent": 100 * remainder // duration, "short": seasonal_short},
-        "pora": {k: pora[k] for k in ("id", "short_name", "name", "phrase")},
+        "pora": {k: pora[k] for k in ("id", "short_name", "name", "phrase", "short_phrase")},
         "relative": {"event": event, "event_at": iso_ms(event_at), "offset_ms": offset_ms},
         "display": {"pora": pora["name"], "seasonal": seasonal_text, "relative": relative_text},
     }
@@ -182,7 +182,7 @@ def main(argv=None):
         day = cal["dates"][civil]
         result["display"]["full"] = fill(names["templates"]["full_text"], {
             "day_text": day["day_text"], "year_phrase": cal["year_phrase"],
-            "pora_phrase": result["pora"]["phrase"]})
+            "pora_short_phrase": result["pora"]["short_phrase"]})
     except TimeError as exc:
         print(f"error: {exc.code}: {exc}", file=sys.stderr)
         return 2
