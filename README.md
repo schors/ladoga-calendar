@@ -1,6 +1,6 @@
 # Ладожский календарь
 
-**Ladoga Calendar** is a modern authorial calendar for Lake Ladoga, the Neva river and the eastern Gulf of Finland (Russia). It expresses an ordinary Gregorian date through the nearest of 25 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar for the date. A time-of-day layer ("Ladoga time") splits daylight and night into 12 seasonal hours each and eight named periods, computed for the source of the Neva; per-day sunrise, noon, sunset and period changes are precomputed too. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE), except the vendored `vendor/astronomy-engine/` (MIT, see its LICENSE) and `tz/Europe/Moscow` (from the public-domain IANA tz database). The rest of this README is in Russian.
+**Ladoga Calendar** is a modern authorial calendar for Lake Ladoga, the Neva river and the eastern Gulf of Finland (Russia). It expresses an ordinary Gregorian date through the nearest of 26 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar for the date. A time-of-day layer ("Ladoga time") splits daylight and night into 12 seasonal hours each and eight named periods, computed for the source of the Neva; per-day sunrise, noon, sunset and period changes are precomputed too. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE), except the vendored `vendor/astronomy-engine/` (MIT, see its LICENSE) and `tz/Europe/Moscow` (from the public-domain IANA tz database). The rest of this README is in Russian.
 
 ---
 
@@ -122,7 +122,7 @@ jq -r '.holidays[] | "\(.day).\(.month) \(.name)"' data/ru/holidays.json
 
 ## Время суток
 
-Кроме даты, можно показать пору дня или ночи по Солнцу. От восхода до заката идут 12 дневных часов, от заката до восхода — 12 ночных. Каждые три часа — одна пора: Утро на Неве, Предполуденье на Ладоге, Послеполуденье на островах, Предзакатье над заливом, Сумерки у маяков, Полуночье над шхерами, Заполночье на Неве, Предзарье над Ладогой. Расчёт ведётся для истока Невы.
+Кроме даты, можно показать пору дня или ночи по Солнцу. От восхода до заката идут 12 дневных часов, от заката до восхода — 12 ночных. Каждые три часа — одна пора: Утро на Неве, Предполуденье на Ладоге, Послеполуденье на островах, Предзакатье над заливом, Сумерки у сигнальных костров, Полуночье над шхерами, Заполночье на Неве, Предзарье над Ладогой. Расчёт ведётся для истока Невы.
 
 ```bash
 python3 scripts/ladoga_time.py 2026-11-24T12:00:00+03:00 --style full
@@ -149,7 +149,7 @@ jq -r --arg id "$id" '.poras[] | select(.id == $id) | .name' data/ru/time.json
 
 **Счёт лет.** Эра называется «Лета Ладоги». Номер лета равен григорианскому году минус 752. Например, 2026 год — 1274-е лето. Эпоха условна: 753 год взят по археологической дендродате и не означает точный год основания поселения. Номер лета меняется 1 января.
 
-**Праздники.** Все 25 праздников каждый год приходятся на одни и те же григорианские даты.
+**Праздники.** Все 26 праздников каждый год приходятся на одни и те же григорианские даты.
 
 **Опорный праздник.** Для каждой даты выбирается ближайший праздник, в прошлом или в будущем. Если до двух праздников одинаково далеко, выбирается прошедший. Подпись строится так:
 
@@ -184,6 +184,7 @@ jq -r --arg id "$id" '.poras[] | select(.id == $id) | .name' data/ru/time.json
 | 10 августа | Горячие скалы |
 | 19 августа | Первые плоды |
 | 5 сентября | Рябиновый огонь |
+| 14 сентября | Миножья ночь |
 | 22 сентября | Осенины |
 | 3 октября | День западного ветра |
 | 14 октября | Закрытие земли |
@@ -195,7 +196,7 @@ jq -r --arg id "$id" '.poras[] | select(.id == $id) | .name' data/ru/time.json
 
 Даты Солнцеворота, Весеннего поворота, Осенин и Коляды — символические. Настоящие астрономические моменты не вычисляются.
 
-Кроме праздников, в данных описаны события, которые записываются по наблюдению: Вскрытие Невы, Ладожский лёд (второй весенний ледоход по Неве), Первая корюшка, Первый иней, Наводнение и Ледостав. У них нет постоянных дат. Пока не записано ни одного наблюдения, и на готовые подписи эти события не влияют.
+Кроме праздников, в данных описаны события, которые записываются по наблюдению: Вскрытие Невы, Ладожский лёд (второй весенний ледоход по Неве), Первая корюшка, Первая минога, Первый иней, Наводнение и Ледостав. У них нет постоянных дат. Пока не записано ни одного наблюдения, и на готовые подписи эти события не влияют.
 
 ## Источники
 
