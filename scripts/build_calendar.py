@@ -65,7 +65,7 @@ TIME_DIR = "time"
 SUN_DIR = "sun"
 SUN_EVENTS = ["sunrise", "solar_noon", "sunset"]
 PERIODS = ["day", "night"]
-PORA_TEXT_FIELDS = ["short_name", "name", "name_genitive", "phrase", "short_phrase", "meaning"]
+PORA_TEXT_FIELDS = ["short_name", "name", "name_genitive", "phrase", "short_phrase", "short_genitive", "meaning"]
 PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour"] + PORA_TEXT_FIELDS
 SUPPORTED_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
                    "interval_bounds": "start_included_end_excluded",
@@ -77,6 +77,7 @@ SUPPORTED_RELATIVE = {"events": SUN_EVENTS, "candidate_day_offsets": [-1, 0, 1],
 TIME_TEMPLATE_FIELDS = {
     "seasonal": {"hour", "period_adjective"},
     "seasonal_short": {"period_letter", "hour_2d"},
+    "pora_part": {"part_word", "pora_short_genitive"},
     "relative_before": {"duration", "event_genitive"},
     "relative_after": {"duration", "event_genitive"},
     "relative_soon_before": {"event_genitive"},
@@ -232,6 +233,9 @@ def validate_time(defs):
     if not (isinstance(words, dict) and set(words) == {str(n) for n in range(1, 13)}
             and all(isinstance(w, str) and w for w in words.values())):
         raise DefinitionError("time.hour_words must hold words for 1 to 12 hours")
+    parts = t.get("part_words")
+    if not (isinstance(parts, dict) and set(parts) == {"1", "2", "3"} and all(isinstance(w, str) and w for w in parts.values())):
+        raise DefinitionError("time.part_words must hold words for the 1st to 3rd part of a pora")
     for e in SUN_EVENTS:
         if not all(isinstance(t["event_names"].get(e, {}).get(f), str) for f in ("name", "genitive", "near_phrase")):
             raise DefinitionError(f"time.event_names.{e} must hold name, genitive and near_phrase")
@@ -476,6 +480,7 @@ def build_time_names(defs):
         "periods": t["periods"],
         "event_names": t["event_names"],
         "hour_words": t["hour_words"],
+        "part_words": t["part_words"],
         "templates": t["templates"],
         "templates_note": t["templates_note"],
     }

@@ -7,7 +7,7 @@ Usage:
     python3 scripts/ladoga_time.py now --style full             # calendar date and pora together
     python3 scripts/ladoga_time.py now --json                   # every part as JSON
 
-Styles: pora (default), seasonal, relative, full.
+Styles: pora (default), part, seasonal, relative, full.
 A timestamp must carry a UTC offset or Z; a bare local time is refused.
 Needs Python 3.11 or newer (for "Z" in datetime.fromisoformat).
 Exit code: 0 on success, 2 on an error (printed as "error: <code>: <message>").
@@ -20,7 +20,7 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 EVENTS = ["sunrise", "solar_noon", "sunset"]
-STYLES = ["pora", "seasonal", "relative", "full"]
+STYLES = ["pora", "part", "seasonal", "relative", "full"]
 # Steps of the relative text, as in time.relative of the definitions.
 NEAR_MINUTES = 15
 SOON_MINUTES = 60
@@ -110,6 +110,10 @@ def describe(instant_ms, events, offset_s, names):
     t = names["templates"]
     hour = hour_index + 1
     seasonal_text = fill(t["seasonal"], {"hour": hour, "period_adjective": period["adjective"]})
+    # Each pora has three parts ("пределы"), one per seasonal hour.
+    part = hour_index % 3 + 1
+    part_text = fill(t["pora_part"], {"part_word": names["part_words"][str(part)],
+                                      "pora_short_genitive": pora["short_genitive"]})
     seasonal_short = fill(t["seasonal_short"], {"period_letter": period["letter"], "hour_2d": f"{hour:02d}"})
     # No minutes in the text: "at sunset", "soon after sunset", then whole hours.
     minutes = (abs(offset_ms) + 30000) // 60000
@@ -132,9 +136,9 @@ def describe(instant_ms, events, offset_s, names):
                    "start_civil_date": start_date.isoformat(), "elapsed_ms": elapsed, "duration_ms": duration},
         "seasonal": {"hour": hour, "hour_progress": remainder / duration,
                      "progress_percent": 100 * remainder // duration, "short": seasonal_short},
-        "pora": {k: pora[k] for k in ("id", "short_name", "name", "phrase", "short_phrase")},
+        "pora": {**{k: pora[k] for k in ("id", "short_name", "name", "phrase", "short_phrase")}, "part": part},
         "relative": {"event": event, "event_at": iso_ms(event_at), "offset_ms": offset_ms},
-        "display": {"pora": pora["name"], "seasonal": seasonal_text, "relative": relative_text},
+        "display": {"pora": pora["name"], "part": part_text, "seasonal": seasonal_text, "relative": relative_text},
     }
 
 

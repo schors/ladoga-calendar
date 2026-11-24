@@ -136,18 +136,18 @@ SHARED_FIELDS = ["schema_version", "calendar_id", "calendar_version"]
 
 # --- Time of day references ---
 SUN_DIR, TIME_DIR = "sun", "time"
-# (id, period, first_hour, short_name, name, name_genitive, phrase)
+# (id, period, first_hour, short_name, name, name_genitive, phrase, short_phrase, short_genitive)
 REFERENCE_PORAS = [
-    ("morning", "day", 1, "Утро", "Утро на Неве", "Утра на Неве", "утром на Неве", "утром"),
-    ("forenoon", "day", 4, "Высокое солнце", "Высокое солнце над Ладогой", "Высокого солнца над Ладогой", "при высоком солнце над Ладогой", "при высоком солнце"),
-    ("afternoon", "day", 7, "Паужна", "Паужна на островах", "Паужны на островах", "в паужну на островах", "в паужну"),
-    ("before_sunset", "day", 10, "Низкое солнце", "Низкое солнце над заливом", "Низкого солнца над заливом", "при низком солнце над заливом", "при низком солнце"),
-    ("dusk", "night", 1, "Сумерки", "Сумерки у рыбацких костров", "Сумерек у рыбацких костров", "в сумерки у рыбацких костров", "в сумерки"),
-    ("before_midnight", "night", 4, "Первый сон", "Первый сон в шхерах", "Первого сна в шхерах", "в первый сон в шхерах", "в первый сон"),
-    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора на Вуоксе", "Глухой поры на Вуоксе", "в глухую пору на Вуоксе", "в глухую пору"),
-    ("predawn", "night", 10, "Заря", "Заря за Свирью", "Зари за Свирью", "на заре за Свирью", "на заре"),
+    ("morning", "day", 1, "Утро", "Утро на Неве", "Утра на Неве", "утром на Неве", "утром", "утра"),
+    ("forenoon", "day", 4, "Высокое солнце", "Высокое солнце над Ладогой", "Высокого солнца над Ладогой", "при высоком солнце над Ладогой", "при высоком солнце", "высокого солнца"),
+    ("afternoon", "day", 7, "Паужна", "Паужна на островах", "Паужны на островах", "в паужну на островах", "в паужну", "паужны"),
+    ("before_sunset", "day", 10, "Низкое солнце", "Низкое солнце над заливом", "Низкого солнца над заливом", "при низком солнце над заливом", "при низком солнце", "низкого солнца"),
+    ("dusk", "night", 1, "Сумерки", "Сумерки у рыбацких костров", "Сумерек у рыбацких костров", "в сумерки у рыбацких костров", "в сумерки", "сумерек"),
+    ("before_midnight", "night", 4, "Первый сон", "Первый сон в шхерах", "Первого сна в шхерах", "в первый сон в шхерах", "в первый сон", "первого сна"),
+    ("after_midnight", "night", 7, "Глухая пора", "Глухая пора на Вуоксе", "Глухой поры на Вуоксе", "в глухую пору на Вуоксе", "в глухую пору", "глухой поры"),
+    ("predawn", "night", 10, "Заря", "Заря за Свирью", "Зари за Свирью", "на заре за Свирью", "на заре", "зари"),
 ]
-PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase", "short_phrase"]
+PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase", "short_phrase", "short_genitive"]
 PORAS = [dict(zip(PORA_FIELDS, row)) for row in REFERENCE_PORAS]
 REFERENCE_LOCATION = {"id": "neva_source", "latitude_deg": 59.95, "longitude_deg": 31.04, "elevation_m": 0.0}
 SUN_ALTITUDE_DEG = -50 / 60
@@ -158,6 +158,7 @@ SUN_TOLERANCE_S = 20
 REFERENCE_TIME_TEMPLATES = {
     "seasonal": "{hour}-й {period_adjective} час",
     "seasonal_short": "{period_letter}{hour_2d}",
+    "pora_part": "{part_word} предел {pora_short_genitive}",
     "relative_before": "За {duration} до {event_genitive}",
     "relative_after": "Через {duration} после {event_genitive}",
     "relative_soon_before": "Незадолго до {event_genitive}",
@@ -180,6 +181,7 @@ REFERENCE_TIME_NAMES = {
     "hour_words": {"1": "час", "2": "два часа", "3": "три часа", "4": "четыре часа", "5": "пять часов",
                    "6": "шесть часов", "7": "семь часов", "8": "восемь часов", "9": "девять часов",
                    "10": "десять часов", "11": "одиннадцать часов", "12": "двенадцать часов"},
+    "part_words": {"1": "Первый", "2": "Второй", "3": "Третий"},
 }
 SUN_EVENTS = ["sunrise", "solar_noon", "sunset"]
 SUN_FIELDS = ["schema_version", "calendar_id", "model_id", "sun_data_revision", "year", "reference_location",
@@ -189,10 +191,10 @@ TIME_FIELDS = ["schema_version", "calendar_id", "calendar_version", "model_id", 
                "timezone", "utc_offset", "days", "dates"]
 TIME_RECORD_FIELDS = SUN_EVENTS + [f"{e}_local" for e in SUN_EVENTS] + ["poras"]
 TIME_NAMES_FIELDS = ["schema_version", "calendar_id", "calendar_version", "language", "model_id", "note",
-                     "reference_location", "poras", "periods", "event_names", "hour_words", "templates",
+                     "reference_location", "poras", "periods", "event_names", "hour_words", "part_words", "templates",
                      "templates_note"]
 PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour", "short_name", "name", "name_genitive",
-                         "phrase", "short_phrase", "meaning"]
+                         "phrase", "short_phrase", "short_genitive", "meaning"]
 
 
 class CheckError(Exception):
@@ -756,7 +758,8 @@ def check_time_names(defs, errors):
            "reference_location": {"id": REFERENCE_LOCATION["id"], "name": t["reference_location"]["name"]},
            "poras": [{f: p[f] for f in PUBLISHED_PORA_FIELDS} for p in t["poras"]],
            "periods": REFERENCE_TIME_NAMES["periods"], "event_names": REFERENCE_TIME_NAMES["event_names"],
-           "hour_words": REFERENCE_TIME_NAMES["hour_words"], "templates": REFERENCE_TIME_TEMPLATES,
+           "hour_words": REFERENCE_TIME_NAMES["hour_words"], "part_words": REFERENCE_TIME_NAMES["part_words"],
+           "templates": REFERENCE_TIME_TEMPLATES,
            "templates_note": t["templates_note"]}
     for field, value in exp.items():
         if not same(tn.get(field), value):
@@ -816,13 +819,22 @@ def check_formatter(names, errors):
             got = f"{type(exc).__name__}: {exc}"
         if got != (pid, hour, seasonal, short, relative):
             errors.append(f"formatter {lt.iso_ms(moment, REFERENCE_UTC_OFFSET)}: got {got}, expected {(pid, hour, seasonal, short, relative)}")
-    # The refusal of a bare local time is checked below.
+    # Parts of a pora ("пределы"): the hour number inside the pora.
+    part_cases = [(ms(24, 12, 0), "Второй предел высокого солнца"), (ms(24, 0, 0), "Третий предел первого сна"),
+                             (ms(24, 9, 15), "Первый предел утра"), (ms(24, 9, 14, 59, 999), "Третий предел зари"),
+                             (ms(24, 11, 0), "Первый предел высокого солнца"),
+                             (ms(24, 10, 59, 59, 999), "Третий предел утра")]
+    for moment, expected in part_cases:
+        got = lt.describe(moment, events, REFERENCE_UTC_OFFSET, names)["display"]["part"]
+        if got != expected:
+            errors.append(f"formatter {lt.iso_ms(moment, REFERENCE_UTC_OFFSET)}: part {got!r}, expected {expected!r}")
     # The command line on real data, including the full calendar-and-pora sentence.
     real = [
         (["2026-11-24T12:00:00+03:00", "--style", "full"],
          "В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце."),
         (["2026-06-21T23:50:00+03:00"], "Первый сон в шхерах"),
         (["2026-06-21T23:50:00+03:00", "--style", "seasonal"], "4-й ночной час"),
+        (["2026-06-21T23:50:00+03:00", "--style", "part"], "Первый предел первого сна"),
     ]
     for argv, expected in real:
         out = io.StringIO()
@@ -838,7 +850,7 @@ def check_formatter(names, errors):
         errors.append("formatter: a timestamp without UTC offset must be refused")
     except lt.TimeError:
         pass
-    return len(cases) + len(real)
+    return len(cases) + len(part_cases) + len(real)
 
 
 def check_time(defs, errors):
