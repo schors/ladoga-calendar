@@ -9,11 +9,11 @@ Only the standard library is used. The pictures are illustrations: the
 calendar itself lives in data/, and these files are drawn from it.
 """
 import argparse
-import base64
 import hashlib
 import datetime as dt
 import json
 import math
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -39,9 +39,8 @@ PAPER = "#f7f4ec"
 ACCENT = "#a3472b"
 DAY_FILL = ["#f3e3a6", "#f0d77f", "#e9c766", "#e3b25a"]
 NIGHT_FILL = ["#6c7d96", "#3f4d66", "#2a3449", "#56657f"]
-FONT = "font-family=\"Kurale, Georgia, 'Times New Roman', serif\""
 # Kurale by Eduardo Tunni, SIL Open Font License 1.1 (fonts/kurale/OFL.txt).
-# It is embedded into each picture: an SVG shown as an image cannot load fonts from outside.
+# Its glyph outlines are drawn into each picture: GitHub blocks fonts in served SVG files.
 FONT_FILE = ROOT / "fonts" / "kurale" / "Kurale-Regular.ttf"
 FONT_SHA256 = "6055aaca6870ca64210dd81fa47f8bb71595a9c8fbe570351ed45a15f1a0820d"
 
@@ -50,9 +49,191 @@ def load(path):
     return json.loads((DATA / path).read_text(encoding="utf-8"))
 
 
-def text(x, y, s, size=16, fill=INK, anchor="start", weight="normal", style="normal", extra=""):
-    return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{fill}" text-anchor="{anchor}" '
-            f'font-weight="{weight}" font-style="{style}" {FONT} {extra}>{escape(s)}</text>')
+class Font:
+    """Minimal reader of a TrueType font: glyph outlines and advance widths.
+
+    Text is drawn as outlines because GitHub serves pictures with a policy
+    that blocks every font, embedded ones included.
+    """
+
+    def __init__(self, path, sha256):
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != sha256:
+            raise SystemExit(f"FAILED: {path.relative_to(ROOT)} does not match its SHA-256")
+        self.raw = raw
+        n = struct.unpack(">H", raw[4:6])[0]
+        self.tables = {}
+        for k in range(n):
+            tag, _, off, length = struct.unpack(">4sIII", raw[12 + 16 * k:28 + 16 * k])
+            self.tables[tag.decode("latin-1")] = (off, length)
+        head = self.tables["head"][0]
+        self.upem = struct.unpack(">H", raw[head + 18:head + 20])[0]
+        loc_format = struct.unpack(">h", raw[head + 50:head + 52])[0]
+        maxp = self.tables["maxp"][0]
+        num_glyphs = struct.unpack(">H", raw[maxp + 4:maxp + 6])[0]
+        hhea = self.tables["hhea"][0]
+        num_metrics = struct.unpack(">H", raw[hhea + 34:hhea + 36])[0]
+        hmtx = self.tables["hmtx"][0]
+        self.advance = [struct.unpack(">H", raw[hmtx + 4 * min(g, num_metrics - 1):][:2])[0]
+                        for g in range(num_glyphs)]
+        loca = self.tables["loca"][0]
+        if loc_format == 0:
+            self.loca = [2 * v for v in struct.unpack(f">{num_glyphs + 1}H", raw[loca:loca + 2 * (num_glyphs + 1)])]
+        else:
+            self.loca = list(struct.unpack(f">{num_glyphs + 1}I", raw[loca:loca + 4 * (num_glyphs + 1)]))
+        self.cmap = self._read_cmap()
+        self.paths = {}
+
+    def _read_cmap(self):
+        raw, base = self.raw, self.tables["cmap"][0]
+        count = struct.unpack(">H", raw[base + 2:base + 4])[0]
+        for k in range(count):
+            pid, eid, off = struct.unpack(">HHI", raw[base + 4 + 8 * k:base + 12 + 8 * k])
+            sub = base + off
+            if (pid, eid) == (3, 1) and struct.unpack(">H", raw[sub:sub + 2])[0] == 4:
+                segs = struct.unpack(">H", raw[sub + 6:sub + 8])[0] // 2
+                arr = lambda at: struct.unpack(f">{segs}H", raw[at:at + 2 * segs])
+                ends = arr(sub + 14)
+                starts = arr(sub + 16 + 2 * segs)
+                deltas = struct.unpack(f">{segs}h", raw[sub + 16 + 4 * segs:sub + 16 + 6 * segs])
+                ro_at = sub + 16 + 6 * segs
+                offsets = arr(ro_at)
+                cmap = {}
+                for g in range(segs):
+                    for c in range(starts[g], ends[g] + 1):
+                        if c == 0xFFFF:
+                            continue
+                        if offsets[g] == 0:
+                            gid = (c + deltas[g]) & 0xFFFF
+                        else:
+                            at = ro_at + 2 * g + offsets[g] + 2 * (c - starts[g])
+                            gid = struct.unpack(">H", raw[at:at + 2])[0]
+                            gid = (gid + deltas[g]) & 0xFFFF if gid else 0
+                        cmap[c] = gid
+                return cmap
+        raise SystemExit("FAILED: the font has no Unicode BMP cmap")
+
+    def _contours(self, gid):
+        """Return contours as lists of (x, y, on_curve) in font units."""
+        raw = self.raw
+        start = self.tables["glyf"][0] + self.loca[gid]
+        if self.loca[gid] == self.loca[gid + 1]:
+            return []
+        n = struct.unpack(">h", raw[start:start + 2])[0]
+        pos = start + 10
+        if n < 0:
+            contours = []
+            while True:
+                flags, sub = struct.unpack(">HH", raw[pos:pos + 4])
+                pos += 4
+                if flags & 1:
+                    dx, dy = struct.unpack(">hh", raw[pos:pos + 4])
+                    pos += 4
+                else:
+                    dx, dy = struct.unpack(">bb", raw[pos:pos + 2])
+                    pos += 2
+                a, b, c, d = 1.0, 0.0, 0.0, 1.0
+                if flags & 0x8:
+                    a = d = struct.unpack(">h", raw[pos:pos + 2])[0] / 16384
+                    pos += 2
+                elif flags & 0x40:
+                    a, d = (v / 16384 for v in struct.unpack(">hh", raw[pos:pos + 4]))
+                    pos += 4
+                elif flags & 0x80:
+                    a, b, c, d = (v / 16384 for v in struct.unpack(">hhhh", raw[pos:pos + 8]))
+                    pos += 8
+                for contour in self._contours(sub):
+                    contours.append([(a * x + c * y + dx, b * x + d * y + dy, on) for x, y, on in contour])
+                if not flags & 0x20:
+                    return contours
+        ends = struct.unpack(f">{n}H", raw[pos:pos + 2 * n])
+        pos += 2 * n
+        ilen = struct.unpack(">H", raw[pos:pos + 2])[0]
+        pos += 2 + ilen
+        total = ends[-1] + 1
+        flags = []
+        while len(flags) < total:
+            f = raw[pos]
+            pos += 1
+            flags.append(f)
+            if f & 8:
+                flags.extend([f] * raw[pos])
+                pos += 1
+        coords = []
+        for short, same in ((2, 16), (4, 32)):
+            v, vals = 0, []
+            for f in flags:
+                if f & short:
+                    d = raw[pos]
+                    pos += 1
+                    v += d if f & same else -d
+                elif not f & same:
+                    v += struct.unpack(">h", raw[pos:pos + 2])[0]
+                    pos += 2
+                vals.append(v)
+            coords.append(vals)
+        points = [(x, y, f & 1) for x, y, f in zip(coords[0], coords[1], flags)]
+        contours, first = [], 0
+        for e in ends:
+            contours.append(points[first:e + 1])
+            first = e + 1
+        return contours
+
+    def glyph_path(self, gid):
+        if gid not in self.paths:
+            parts = []
+            for contour in self._contours(gid):
+                if not contour:
+                    continue
+                pts = list(contour)
+                # Start from an on-curve point; if none, from the midpoint of the first two.
+                k = next((i for i, p in enumerate(pts) if p[2]), None)
+                if k is None:
+                    x0 = (pts[0][0] + pts[1][0]) / 2
+                    y0 = (pts[0][1] + pts[1][1]) / 2
+                    pts = [(x0, y0, 1)] + pts
+                else:
+                    pts = pts[k:] + pts[:k]
+                fmt = lambda v: f"{v:.0f}" if v == int(v) else f"{v:.1f}"
+                d = [f"M{fmt(pts[0][0])} {fmt(pts[0][1])}"]
+                ctrl = None
+                for x, y, on in pts[1:] + [pts[0]]:
+                    if on:
+                        d.append(f"Q{fmt(ctrl[0])} {fmt(ctrl[1])} {fmt(x)} {fmt(y)}" if ctrl else f"L{fmt(x)} {fmt(y)}")
+                        ctrl = None
+                    else:
+                        if ctrl:
+                            mx, my = (ctrl[0] + x) / 2, (ctrl[1] + y) / 2
+                            d.append(f"Q{fmt(ctrl[0])} {fmt(ctrl[1])} {fmt(mx)} {fmt(my)}")
+                        ctrl = (x, y)
+                d.append("Z")
+                parts.append("".join(d))
+            self.paths[gid] = "".join(parts)
+        return self.paths[gid]
+
+
+FONT_DATA = None
+USED_GLYPHS = set()
+
+
+def text(x, y, s, size=16, fill=INK, anchor="start"):
+    """Draw a line of text as glyph outlines; glyphs are shared through <defs>."""
+    global FONT_DATA
+    if FONT_DATA is None:
+        FONT_DATA = Font(FONT_FILE, FONT_SHA256)
+    f = FONT_DATA
+    gids = [f.cmap.get(ord(ch), 0) for ch in s]
+    width = sum(f.advance[g] for g in gids)
+    shift = {"start": 0, "middle": width / 2, "end": width}[anchor]
+    k = size / f.upem
+    uses, pen = [], -shift
+    for g in gids:
+        if f.glyph_path(g):
+            USED_GLYPHS.add(g)
+            uses.append(f'<use xlink:href="#g{g}" x="{pen:.0f}"/>')
+        pen += f.advance[g]
+    return (f'<g fill="{fill}" transform="translate({x:.1f} {y:.1f}) scale({k:.5f} {-k:.5f})">'
+            f'<title>{escape(s)}</title>' + "".join(uses) + "</g>")
 
 
 def rhomb(x, y, r, fill="none", stroke=ACCENT, width=1.2):
@@ -81,18 +262,11 @@ def band(x0, x1, y):
     return "\n".join(parts)
 
 
-def font_face():
-    raw = FONT_FILE.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != FONT_SHA256:
-        raise SystemExit(f"FAILED: {FONT_FILE.relative_to(ROOT)} does not match its SHA-256")
-    data = base64.b64encode(raw).decode("ascii")
-    return (f"<style>@font-face{{font-family:Kurale;src:url(data:font/ttf;base64,{data}) "
-            f"format('truetype');}}</style>\n")
-
-
 def svg(width, height, body):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
-            f'viewBox="0 0 {width} {height}">\n' + font_face() +
+    defs = "".join(f'<path id="g{g}" d="{FONT_DATA.glyph_path(g)}"/>' for g in sorted(USED_GLYPHS))
+    USED_GLYPHS.clear()
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+            f'width="{width}" height="{height}" viewBox="0 0 {width} {height}">\n<defs>{defs}</defs>\n' +
             f'<rect width="{width}" height="{height}" rx="18" fill="{PAPER}"/>\n'
             + "\n".join(body) + "\n</svg>\n")
 
@@ -154,7 +328,7 @@ def wheel():
             tx = lx + (6 if side == "right" else -6)
             anchor = "start" if side == "right" else "end"
             label = f"{date}  {h['name']}" if side == "right" else f"{h['name']}  {date}"
-            body.append(text(tx, y + 5, label, 15, INK, anchor, extra='xml:space="preserve"'))
+            body.append(text(tx, y + 5, label, 15, INK, anchor))
     # A ring of small rhombs inside the months, like an embroidered rosette.
     ring = ['<g opacity="0.5">']
     for k in range(36):
