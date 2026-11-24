@@ -1,7 +1,7 @@
 {
-  "schema_version": "2.1.0",
+  "schema_version": "2.2.0",
   "calendar_id": "ladoga",
-  "calendar_version": "1.1.0",
+  "calendar_version": "1.2.0",
   "name": "Ладожский календарь",
   "definitions": "../ladoga-definitions.json",
   "timezone": "Europe/Moscow",
@@ -39,6 +39,46 @@
       "2038": "ru/2038.json"
     }
   },
+  "time_model": {
+    "model_id": "ladoga-solar-v1",
+    "sun_data_revision": 1,
+    "reference_location": "neva_source"
+  },
+  "time_names": {
+    "ru": "ru/time.json"
+  },
+  "time": {
+    "2025": "time/2025.json",
+    "2026": "time/2026.json",
+    "2027": "time/2027.json",
+    "2028": "time/2028.json",
+    "2029": "time/2029.json",
+    "2030": "time/2030.json",
+    "2031": "time/2031.json",
+    "2032": "time/2032.json",
+    "2033": "time/2033.json",
+    "2034": "time/2034.json",
+    "2035": "time/2035.json",
+    "2036": "time/2036.json",
+    "2037": "time/2037.json",
+    "2038": "time/2038.json"
+  },
+  "sun": {
+    "2025": "sun/2025.json",
+    "2026": "sun/2026.json",
+    "2027": "sun/2027.json",
+    "2028": "sun/2028.json",
+    "2029": "sun/2029.json",
+    "2030": "sun/2030.json",
+    "2031": "sun/2031.json",
+    "2032": "sun/2032.json",
+    "2033": "sun/2033.json",
+    "2034": "sun/2034.json",
+    "2035": "sun/2035.json",
+    "2036": "sun/2036.json",
+    "2037": "sun/2037.json",
+    "2038": "sun/2038.json"
+  },
   "usage": {
     "paths": "Все пути в этом файле записаны относительно папки, где он лежит.",
     "year_file": "files[language][YYYY] — файл года",
@@ -49,7 +89,12 @@
     "year_number": "era_year — номер ладожского лета",
     "year_phrase": "year_phrase",
     "holiday_occurrence": "holiday_dates[holiday_id]",
+    "time_file": "time[YYYY] — восход, полдень и закат по дням и смены пор по местному времени",
+    "current_pora": "time dates[YYYY-MM-DD].poras — пора последней записи, время которой не позже текущего местного времени",
+    "pora_names": "time_names[language] — названия пор по id, шаблоны подписей времени",
+    "time_phrase": "time_names templates.full_text: {day_text} и {year_phrase} — из файла года, {pora_phrase} — poras[].phrase из time_names. Сезонный час и подпись «за … до восхода» требуют расчёта: scripts/ladoga_time.py",
+    "sun_file": "sun[YYYY] — точные моменты восхода, полудня и заката в UTC; edge_events — соседние дни за краями диапазона",
     "outside_range": "Если года нет в files, дата вне диапазона. Если в файле года нет даты, такой даты не существует. Нельзя молча подставлять другой год.",
-    "editing": "Файлы в этой папке создаются скриптом scripts/build_calendar.py из ladoga-definitions.json. Вручную их не правят."
+    "editing": "Файлы в этой папке создаются скриптами scripts/build_sun.py (папка sun/) и scripts/build_calendar.py (остальное) из ladoga-definitions.json. Вручную их не правят."
   }
 }

@@ -1,7 +1,7 @@
 {
-  "schema_version": "2.1.0",
+  "schema_version": "2.2.0",
   "calendar_id": "ladoga",
-  "calendar_version": "1.1.0",
+  "calendar_version": "1.2.0",
   "name": "Ладожский календарь",
   "status": "authorial",
   "locale": "ru-RU",
@@ -665,6 +665,208 @@
     ],
     "note": "Здесь нет выдуманных наблюдений. Добавленные наблюдения не меняют готовые записи дней автоматически; для их использования нужен отдельный выбор опоры и пересчёт."
   },
+  "time": {
+    "model_id": "ladoga-solar-v1",
+    "status": "authorial",
+    "note": "Время суток по Солнцу: 12 дневных часов от восхода до заката и 12 ночных от заката до восхода, по три часа на пору. Названия пор придуманы для проекта. Подробности — docs/ladoga-time.md.",
+    "reference_location": {
+      "id": "neva_source",
+      "name": "Исток Невы",
+      "latitude_deg": 59.95,
+      "longitude_deg": 31.04,
+      "elevation_m": 0.0,
+      "note": "Модельная точка у истока Невы из Ладоги, возле острова Орешек. Координаты — выбор проекта, высота 0 м — ровный горизонт."
+    },
+    "timezone_file": {
+      "path": "tz/Europe/Moscow",
+      "tzdb_version": "2026e",
+      "sha256": "2a69287d1723e93f0f876f0f242866f09569d77b91bde7fa4d9d06b8fcd4883c"
+    },
+    "ephemeris_engine": {
+      "name": "Astronomy Engine",
+      "version": "2.1.19",
+      "path": "vendor/astronomy-engine/astronomy.py",
+      "sha256": "5f3a17c0b14290d084eeb0d29b00b3139cd1703a8d30fa5eb141398a24719261",
+      "license": "MIT",
+      "delta_t": "DeltaT_EspenakMeeus"
+    },
+    "sun_data_revision": 1,
+    "solar_events": {
+      "sunrise_set_altitude_deg": -0.8333333333333334,
+      "altitude_kind": "geometric_solar_center",
+      "additional_refraction": false,
+      "solar_noon_kind": "upper_meridian_transit",
+      "timestamp_timezone": "UTC",
+      "timestamp_precision": "second",
+      "rounding": "nearest_second_ties_toward_future"
+    },
+    "clock": {
+      "day_hours": 12,
+      "night_hours": 12,
+      "hours_per_pora": 3,
+      "interval_bounds": "start_included_end_excluded",
+      "local_boundary_rounding": "up_to_whole_second"
+    },
+    "relative": {
+      "events": [
+        "sunrise",
+        "solar_noon",
+        "sunset"
+      ],
+      "candidate_day_offsets": [
+        -1,
+        0,
+        1
+      ],
+      "selection": "nearest",
+      "tie_breaker": "past",
+      "display_unit": "minute",
+      "rounding": "nearest_minute_half_up"
+    },
+    "poras": [
+      {
+        "id": "morning",
+        "period": "day",
+        "first_hour": 1,
+        "last_hour": 3,
+        "short_name": "Утро",
+        "name": "Утро на Неве",
+        "name_genitive": "Утра на Неве",
+        "phrase": "утром на Неве",
+        "meaning": "Первая четверть светлого времени после восхода. Образ — утро на реке, текущей из Ладоги к заливу."
+      },
+      {
+        "id": "forenoon",
+        "period": "day",
+        "first_hour": 4,
+        "last_hour": 6,
+        "short_name": "Предполуденье",
+        "name": "Предполуденье на Ладоге",
+        "name_genitive": "Предполуденья на Ладоге",
+        "phrase": "в предполуденье на Ладоге",
+        "meaning": "Вторая четверть дня, Солнце поднимается к полудню. Образ — западное побережье Ладоги: Осиновец и остров Коневец."
+      },
+      {
+        "id": "afternoon",
+        "period": "day",
+        "first_hour": 7,
+        "last_hour": 9,
+        "short_name": "Послеполуденье",
+        "name": "Послеполуденье на островах",
+        "name_genitive": "Послеполуденья на островах",
+        "phrase": "в послеполуденье на островах",
+        "meaning": "Третья четверть дня, Солнце после полудня клонится к западу. Образ — острова северной Ладоги и залива: Валаам, шхеры."
+      },
+      {
+        "id": "before_sunset",
+        "period": "day",
+        "first_hour": 10,
+        "last_hour": 12,
+        "short_name": "Предзакатье",
+        "name": "Предзакатье над заливом",
+        "name_genitive": "Предзакатья над заливом",
+        "phrase": "в предзакатье над заливом",
+        "meaning": "Последняя четверть дня перед закатом. Солнце уходит на запад, к заливу."
+      },
+      {
+        "id": "dusk",
+        "period": "night",
+        "first_hour": 1,
+        "last_hour": 3,
+        "short_name": "Сумерки",
+        "name": "Сумерки у маяков",
+        "name_genitive": "Сумерек у маяков",
+        "phrase": "в сумерки у маяков",
+        "meaning": "Первая четверть ночи после заката, когда зажигаются маяки Ладоги и залива. Зимой эта пора длится несколько часов, дольше настоящих сумерек."
+      },
+      {
+        "id": "before_midnight",
+        "period": "night",
+        "first_hour": 4,
+        "last_hour": 6,
+        "short_name": "Полуночье",
+        "name": "Полуночье над шхерами",
+        "name_genitive": "Полуночья над шхерами",
+        "phrase": "в полуночье над шхерами",
+        "meaning": "Вторая четверть ночи, до её середины. Образ — скалистые шхеры северной Ладоги."
+      },
+      {
+        "id": "after_midnight",
+        "period": "night",
+        "first_hour": 7,
+        "last_hour": 9,
+        "short_name": "Заполночье",
+        "name": "Заполночье на Неве",
+        "name_genitive": "Заполночья на Неве",
+        "phrase": "в заполночье на Неве",
+        "meaning": "Третья четверть ночи, после её середины. В белые ночи может быть светло: пора не обещает темноты."
+      },
+      {
+        "id": "predawn",
+        "period": "night",
+        "first_hour": 10,
+        "last_hour": 12,
+        "short_name": "Предзарье",
+        "name": "Предзарье над Ладогой",
+        "name_genitive": "Предзарья над Ладогой",
+        "phrase": "в предзарье над Ладогой",
+        "meaning": "Последняя четверть ночи перед восходом. Заря встаёт на востоке, за Ладогой."
+      }
+    ],
+    "periods": {
+      "day": {
+        "name": "день",
+        "adjective": "дневной",
+        "letter": "Д"
+      },
+      "night": {
+        "name": "ночь",
+        "adjective": "ночной",
+        "letter": "Н"
+      }
+    },
+    "event_names": {
+      "sunrise": {
+        "name": "восход",
+        "genitive": "восхода"
+      },
+      "solar_noon": {
+        "name": "солнечный полдень",
+        "genitive": "солнечного полудня"
+      },
+      "sunset": {
+        "name": "закат",
+        "genitive": "заката"
+      }
+    },
+    "unit_forms": {
+      "hour": [
+        "час",
+        "часа",
+        "часов"
+      ],
+      "minute": [
+        "минуту",
+        "минуты",
+        "минут"
+      ]
+    },
+    "templates": {
+      "seasonal": "{hour}-й {period_adjective} час",
+      "seasonal_short": "{period_letter}{hour_2d}",
+      "relative_before": "За {duration} до {event_genitive}",
+      "relative_after": "Через {duration} после {event_genitive}",
+      "relative_near": "Около {event_genitive}",
+      "full_text": "{day_text}, {year_phrase}, {pora_phrase}."
+    },
+    "templates_note": "Откуда берутся значения: hour — номер сезонного часа, hour_2d — он же из двух цифр; period_adjective и period_letter — из periods; event_genitive — из event_names; duration — часы и минуты с формами из unit_forms; pora_phrase — poras[].phrase; day_text и year_phrase — из файла года календаря. unit_forms — формы после «за» и «через» для чисел, оканчивающихся на 1, на 2–4 и остальных; числа, оканчивающиеся на 11–14, берут третью форму.",
+    "source_ids": [
+      "queens_virtual_dial",
+      "usno_rise_set",
+      "astronomy_engine",
+      "iana_tz_theory"
+    ]
+  },
   "sources": [
     {
       "id": "ia_ladoga",
@@ -757,6 +959,34 @@
       "publisher": "ФГБУ «Национальный парк «Ладожские шхеры»»",
       "url": "https://parkladoga.ru/tosave/unikalnye-obekty",
       "supports": "Национальный парк создан в 2017 году для сохранения озёрных шхер Ладожского озера; на острове Мякисало — самые представительные в Приладожье отвесные скалы."
+    },
+    {
+      "id": "queens_virtual_dial",
+      "title": "The Virtual Dial",
+      "publisher": "Queens’ College, Cambridge",
+      "url": "https://history.queens.cam.ac.uk/college/virtual-dial",
+      "supports": "Исторические способы счёта часов, в том числе неравные по сезонам часы от восхода и заката."
+    },
+    {
+      "id": "usno_rise_set",
+      "title": "Rise, Set, and Twilight Definitions",
+      "publisher": "US Naval Observatory",
+      "url": "https://aa.usno.navy.mil/faq/RST_defs",
+      "supports": "Определения восхода, заката и верхней кульминации; стандартный порог 50 угловых минут ниже горизонта; пределы точности."
+    },
+    {
+      "id": "astronomy_engine",
+      "title": "Astronomy Engine — Python API Reference",
+      "publisher": "Don Cross (cosinekitty)",
+      "url": "https://github.com/cosinekitty/astronomy/blob/master/source/python/README.md",
+      "supports": "Функции SearchAltitude и SearchHourAngle, которыми рассчитаны восход, полдень и закат."
+    },
+    {
+      "id": "iana_tz_theory",
+      "title": "Theory and pragmatics of the tz code and data",
+      "publisher": "IANA",
+      "url": "https://www.iana.org/time-zones/theory",
+      "supports": "Устройство базы часовых поясов и её ограничения, особенно до 1970 года и для будущих правил."
     }
   ]
 }

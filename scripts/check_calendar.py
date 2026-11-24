@@ -7,16 +7,28 @@ definitions: it has its own reference table of holidays (dates and name forms),
 its own Russian number words and its own phrase rules. The definitions are
 compared with these references, and every daily record is recomputed from them.
 
+For the time of day it has its own table of poras and name forms, its own
+low-precision solar formula (Meeus / NOAA style) that every sunrise, solar noon
+and sunset in data/sun/ must match within SUN_TOLERANCE_S, its own computation
+of the pora changes in data/time/, and control cases for scripts/ladoga_time.py.
+
 Usage: python3 scripts/check_calendar.py
 Exit code: 0 if all checks pass, 1 otherwise.
 """
 import calendar
 import collections
+import contextlib
 import datetime as dt
+import hashlib
+import importlib.util
+import io
 import json
+import math
 import re
 import sys
+from fractions import Fraction
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFINITIONS = ROOT / "ladoga-definitions.json"
@@ -100,14 +112,71 @@ YEAR_FIELDS = ["schema_version", "calendar_id", "calendar_version", "language", 
                "era_year", "year_phrase", "is_leap", "days", "holiday_dates", "dates"]
 INDEX_FIELDS = ["schema_version", "calendar_id", "calendar_version", "name", "definitions",
                 "timezone", "encoding", "range", "languages", "default_language", "holidays",
-                "files", "usage"]
+                "files", "time_model", "time_names", "time", "sun", "usage"]
 USAGE_KEYS = ["paths", "year_file", "holidays_file", "ready_date", "day_only", "short_date",
-              "year_number", "year_phrase", "holiday_occurrence", "outside_range", "editing"]
+              "year_number", "year_phrase", "holiday_occurrence", "time_file", "current_pora",
+              "pora_names", "time_phrase", "sun_file", "outside_range", "editing"]
 HOLIDAYS_FILE_FIELDS = ["schema_version", "calendar_id", "calendar_version", "language", "note", "holidays"]
 PUBLISHED_HOLIDAY_FIELDS = ["id", "month", "day", "name", "short_name", "name_genitive",
                             "on_day_phrase", "aliases", "meaning", "suggested_custom",
                             "historical_note"]
 SHARED_FIELDS = ["schema_version", "calendar_id", "calendar_version"]
+
+# --- Time of day references ---
+SUN_DIR, TIME_DIR = "sun", "time"
+# (id, period, first_hour, short_name, name, name_genitive, phrase)
+REFERENCE_PORAS = [
+    ("morning", "day", 1, "Утро", "Утро на Неве", "Утра на Неве", "утром на Неве"),
+    ("forenoon", "day", 4, "Предполуденье", "Предполуденье на Ладоге", "Предполуденья на Ладоге", "в предполуденье на Ладоге"),
+    ("afternoon", "day", 7, "Послеполуденье", "Послеполуденье на островах", "Послеполуденья на островах", "в послеполуденье на островах"),
+    ("before_sunset", "day", 10, "Предзакатье", "Предзакатье над заливом", "Предзакатья над заливом", "в предзакатье над заливом"),
+    ("dusk", "night", 1, "Сумерки", "Сумерки у маяков", "Сумерек у маяков", "в сумерки у маяков"),
+    ("before_midnight", "night", 4, "Полуночье", "Полуночье над шхерами", "Полуночья над шхерами", "в полуночье над шхерами"),
+    ("after_midnight", "night", 7, "Заполночье", "Заполночье на Неве", "Заполночья на Неве", "в заполночье на Неве"),
+    ("predawn", "night", 10, "Предзарье", "Предзарье над Ладогой", "Предзарья над Ладогой", "в предзарье над Ладогой"),
+]
+PORA_FIELDS = ["id", "period", "first_hour", "short_name", "name", "name_genitive", "phrase"]
+PORAS = [dict(zip(PORA_FIELDS, row)) for row in REFERENCE_PORAS]
+REFERENCE_LOCATION = {"id": "neva_source", "latitude_deg": 59.95, "longitude_deg": 31.04, "elevation_m": 0.0}
+SUN_ALTITUDE_DEG = -50 / 60
+# Europe/Moscow has been UTC+3 all year since 2014-10-26.
+REFERENCE_UTC_OFFSET = 3 * 3600
+# Observed maximum difference is about 6 s; 20 s still catches a wrong horizon of about 2'.
+SUN_TOLERANCE_S = 20
+REFERENCE_TIME_TEMPLATES = {
+    "seasonal": "{hour}-й {period_adjective} час",
+    "seasonal_short": "{period_letter}{hour_2d}",
+    "relative_before": "За {duration} до {event_genitive}",
+    "relative_after": "Через {duration} после {event_genitive}",
+    "relative_near": "Около {event_genitive}",
+    "full_text": "{day_text}, {year_phrase}, {pora_phrase}.",
+}
+REFERENCE_CLOCK = {"day_hours": 12, "night_hours": 12, "hours_per_pora": 3,
+                   "interval_bounds": "start_included_end_excluded",
+                   "local_boundary_rounding": "up_to_whole_second"}
+REFERENCE_RELATIVE = {"events": ["sunrise", "solar_noon", "sunset"], "candidate_day_offsets": [-1, 0, 1],
+                      "selection": "nearest", "tie_breaker": "past", "display_unit": "minute",
+                      "rounding": "nearest_minute_half_up"}
+REFERENCE_TIME_NAMES = {
+    "periods": {"day": {"name": "день", "adjective": "дневной", "letter": "Д"},
+                "night": {"name": "ночь", "adjective": "ночной", "letter": "Н"}},
+    "event_names": {"sunrise": {"name": "восход", "genitive": "восхода"},
+                    "solar_noon": {"name": "солнечный полдень", "genitive": "солнечного полудня"},
+                    "sunset": {"name": "закат", "genitive": "заката"}},
+    "unit_forms": {"hour": ["час", "часа", "часов"], "minute": ["минуту", "минуты", "минут"]},
+}
+SUN_EVENTS = ["sunrise", "solar_noon", "sunset"]
+SUN_FIELDS = ["schema_version", "calendar_id", "model_id", "sun_data_revision", "year", "reference_location",
+              "timezone", "tzdb_version", "tzif_sha256", "ephemeris_engine", "solar_events", "days",
+              "edge_events", "dates"]
+TIME_FIELDS = ["schema_version", "calendar_id", "calendar_version", "model_id", "sun_data_revision", "year",
+               "timezone", "utc_offset", "days", "dates"]
+TIME_RECORD_FIELDS = SUN_EVENTS + [f"{e}_local" for e in SUN_EVENTS] + ["poras"]
+TIME_NAMES_FIELDS = ["schema_version", "calendar_id", "calendar_version", "language", "model_id", "note",
+                     "reference_location", "poras", "periods", "event_names", "unit_forms", "templates",
+                     "templates_note"]
+PUBLISHED_PORA_FIELDS = ["id", "period", "first_hour", "last_hour", "short_name", "name", "name_genitive",
+                         "phrase", "meaning"]
 
 
 class CheckError(Exception):
@@ -298,9 +367,15 @@ def check_data(defs, errors):
     for field in SHARED_FIELDS + ["name", "timezone", "encoding"]:
         if not same(index.get(field), defs[field]):
             errors.append(f"index: {field} differs from definitions")
+    expected_time = {str(y): f"{TIME_DIR}/{y}.json" for y in years}
+    expected_sun = {str(y): f"{SUN_DIR}/{y}.json" for y in years}
+    time_model = {"model_id": defs["time"]["model_id"], "sun_data_revision": defs["time"]["sun_data_revision"],
+                  "reference_location": REFERENCE_LOCATION["id"]}
     for field, value in [("definitions", f"../{DEFINITIONS.name}"), ("languages", [LANGUAGE]),
                          ("default_language", LANGUAGE), ("holidays", expected_holidays),
-                         ("files", expected_files)]:
+                         ("files", expected_files), ("time_model", time_model),
+                         ("time_names", {LANGUAGE: f"{LANGUAGE}/time.json"}),
+                         ("time", expected_time), ("sun", expected_sun)]:
         if not same(index.get(field), value):
             errors.append(f"index: {field} is {index.get(field)!r}, expected {value!r}")
     usage = index.get("usage")
@@ -309,7 +384,9 @@ def check_data(defs, errors):
         errors.append("index: usage must hold non-empty texts for " + ", ".join(USAGE_KEYS))
 
     on_disk = {p.relative_to(DATA_DIR).as_posix() for p in DATA_DIR.rglob("*") if p.is_file()}
-    expected_disk = {"index.json", expected_holidays[LANGUAGE]} | set(expected_files[LANGUAGE].values())
+    expected_disk = ({"index.json", expected_holidays[LANGUAGE], f"{LANGUAGE}/time.json"}
+                     | set(expected_files[LANGUAGE].values()) | set(expected_time.values())
+                     | set(expected_sun.values()))
     for p in sorted(on_disk - expected_disk):
         errors.append(f"data: unexpected file {p}")
 
@@ -400,12 +477,350 @@ def check_data(defs, errors):
             "holidays": len(defs["holidays"]), "max_abs_offset": max_offset}
 
 
+# ---------------------------------------------------------------------------
+# Time of day
+
+
+def sun_position(unix):
+    """Low-precision solar declination, right ascension and sidereal time, degrees (Meeus ch. 25).
+
+    For simplicity UT stands in for TT and mean sidereal time is used with apparent
+    right ascension; together these cost about a second, well inside the tolerance.
+    """
+    jd = unix / 86400 + 2440587.5
+    t = (jd - 2451545) / 36525
+    l0 = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360
+    m = math.radians(357.52911 + t * (35999.05029 - 0.0001537 * t))
+    c = ((1.914602 - t * (0.004817 + 0.000014 * t)) * math.sin(m)
+         + (0.019993 - 0.000101 * t) * math.sin(2 * m) + 0.000289 * math.sin(3 * m))
+    omega = math.radians(125.04 - 1934.136 * t)
+    lam = math.radians(l0 + c - 0.00569 - 0.00478 * math.sin(omega))
+    eps = math.radians(23.439291 - 0.0130042 * t + 0.00256 * math.cos(omega))
+    dec = math.degrees(math.asin(math.sin(eps) * math.sin(lam)))
+    ra = math.degrees(math.atan2(math.cos(eps) * math.sin(lam), math.cos(lam)))
+    gmst = (280.46061837 + 360.98564736629 * (jd - 2451545)) % 360
+    return dec, ra, gmst
+
+
+def hour_angle(unix, lon):
+    dec, ra, gmst = sun_position(unix)
+    return (gmst + lon - ra + 180) % 360 - 180, dec
+
+
+def reference_sun_events(day, offset):
+    """Sunrise, solar noon and sunset of a civil date as Unix seconds (float), by Newton steps on the hour angle."""
+    lat, lon = math.radians(REFERENCE_LOCATION["latitude_deg"]), REFERENCE_LOCATION["longitude_deg"]
+    midnight = (day - dt.date(1970, 1, 1)).days * 86400 - offset
+    rate = 360.98564736629 / 86400  # degrees of hour angle per second, close enough for Newton steps
+    noon = midnight + 43200 - lon * 240 + offset
+    for _ in range(5):
+        noon -= hour_angle(noon, lon)[0] / rate
+    out = {"solar_noon": noon}
+    for name, sign in (("sunrise", -1), ("sunset", 1)):
+        t = noon
+        for _ in range(8):
+            h, dec = hour_angle(t, lon)
+            d = math.radians(dec)
+            cos_h0 = ((math.sin(math.radians(SUN_ALTITUDE_DEG)) - math.sin(lat) * math.sin(d))
+                      / (math.cos(lat) * math.cos(d)))
+            t += (sign * math.degrees(math.acos(cos_h0)) - h) / rate
+        out[name] = t
+    return out
+
+
+def reference_pora_changes(day, events, offset):
+    """Pora changes on `day` as local HH:MM:SS, the first one at 00:00 (independent of the generator)."""
+    prev, cur, nxt = (events[day + dt.timedelta(days=d)] for d in (-1, 0, 1))
+    spans = [(prev["sunset"], cur["sunrise"], "night"), (cur["sunrise"], cur["sunset"], "day"),
+             (cur["sunset"], nxt["sunrise"], "night")]
+    marks = []
+    for start, end, period in spans:
+        ids = [p["id"] for p in PORAS if p["period"] == period]
+        for k in range(4):
+            marks.append((math.ceil(start + Fraction(k * (end - start), 4)), ids[k]))
+    midnight = (day - dt.date(1970, 1, 1)).days * 86400 - offset
+    at_midnight = max((m for m in marks if m[0] <= midnight), key=lambda m: m[0])[1]
+    out = [(midnight, at_midnight)] + [m for m in marks if midnight < m[0] < midnight + 86400]
+
+    def hms(sec):
+        return f"{sec // 3600:02d}:{sec // 60 % 60:02d}:{sec % 60:02d}"
+    return [[hms(m - midnight), pid] for m, pid in out]
+
+
+def parse_z(text):
+    if not isinstance(text, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", text):
+        raise CheckError(f"{text!r} is not a YYYY-MM-DDTHH:MM:SSZ timestamp")
+    return int(dt.datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=dt.timezone.utc).timestamp())
+
+
+def check_time_definitions(defs, errors):
+    t = defs["time"]
+    poras = t["poras"]
+    if [p.get("id") for p in poras] != [p["id"] for p in PORAS]:
+        errors.append(f"definitions: time.poras ids or order differ from the reference: {[p.get('id') for p in poras]}")
+    for p, ref in zip(poras, PORAS):
+        for field in PORA_FIELDS:
+            if not same(p.get(field), ref[field]):
+                errors.append(f"definitions: time pora {ref['id']}.{field} is {p.get(field)!r}, reference {ref[field]!r}")
+        if p.get("last_hour") != ref["first_hour"] + 2 or not (isinstance(p.get("meaning"), str) and p["meaning"]):
+            errors.append(f"definitions: time pora {ref['id']} has a wrong last_hour or no meaning")
+    loc = t["reference_location"]
+    if any(not same(loc.get(k), v) for k, v in REFERENCE_LOCATION.items()):
+        errors.append(f"definitions: time.reference_location is {loc}, reference {REFERENCE_LOCATION}")
+    if not same(t["solar_events"].get("sunrise_set_altitude_deg"), SUN_ALTITUDE_DEG):
+        errors.append("definitions: time.solar_events.sunrise_set_altitude_deg is not -50/60")
+    for key, value in REFERENCE_TIME_NAMES.items():
+        if not same(t.get(key), value):
+            errors.append(f"definitions: time.{key} differs from the reference")
+    for key, value in (("clock", REFERENCE_CLOCK), ("relative", REFERENCE_RELATIVE),
+                       ("templates", REFERENCE_TIME_TEMPLATES)):
+        if not same(t.get(key), value):
+            errors.append(f"definitions: time.{key} differs from the reference {value}")
+    for key, what in (("ephemeris_engine", "ephemeris engine"), ("timezone_file", "time zone file")):
+        path = ROOT / t[key]["path"]
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != t[key]["sha256"]:
+            errors.append(f"definitions: {what} {t[key]['path']} is missing or does not match its SHA-256")
+    if defs["timezone"] != "Europe/Moscow":
+        errors.append("definitions: timezone must be Europe/Moscow")
+
+
+def check_zone(defs, years, errors):
+    """The pinned time zone file must give the reference offset on every day, with 24-hour days."""
+    path = ROOT / defs["time"]["timezone_file"]["path"]
+    with open(path, "rb") as f:
+        zone = ZoneInfo.from_file(f, key=defs["timezone"])
+    day = dt.date(years[0] - 1, 12, 31)
+    while day <= dt.date(years[-1] + 1, 1, 1):
+        start = dt.datetime(day.year, day.month, day.day, tzinfo=zone)
+        noon = dt.datetime(day.year, day.month, day.day, 12, tzinfo=zone)
+        if start.utcoffset().total_seconds() != REFERENCE_UTC_OFFSET or noon.utcoffset().total_seconds() != REFERENCE_UTC_OFFSET:
+            errors.append(f"time zone: {day} is not UTC+3 in {path.relative_to(ROOT)}")
+            return
+        day += dt.timedelta(days=1)
+
+
+def check_sun(defs, years, errors):
+    """Check data/sun/ and return {date: {event: Unix seconds}} including the edge days."""
+    t = defs["time"]
+    events = {}
+    max_diff = 0
+    far = collections.Counter()
+    for y in years:
+        path = DATA_DIR / SUN_DIR / f"{y}.json"
+        if not path.exists():
+            errors.append(f"data: missing {path.relative_to(ROOT)}")
+            continue
+        sd = load(path)
+        if list(sd) != SUN_FIELDS:
+            errors.append(f"sun {y}: fields are {list(sd)}")
+        exp = {"schema_version": defs["schema_version"], "calendar_id": defs["calendar_id"],
+               "model_id": t["model_id"], "sun_data_revision": t["sun_data_revision"], "year": y,
+               "reference_location": REFERENCE_LOCATION, "timezone": defs["timezone"],
+               "tzdb_version": t["timezone_file"]["tzdb_version"], "tzif_sha256": t["timezone_file"]["sha256"],
+               "ephemeris_engine": {k: t["ephemeris_engine"][k] for k in ("name", "version", "sha256", "delta_t")},
+               "solar_events": t["solar_events"], "days": 366 if calendar.isleap(y) else 365}
+        for field, value in exp.items():
+            if not same(sd.get(field), value):
+                errors.append(f"sun {y}: {field} is wrong")
+        edges = {}
+        if y == years[0]:
+            edges[f"{y - 1}-12-31"] = None
+        if y == years[-1]:
+            edges[f"{y + 1}-01-01"] = None
+        if list(sd.get("edge_events", {})) != list(edges):
+            errors.append(f"sun {y}: edge_events must hold exactly {list(edges)}")
+        first = dt.date(y, 1, 1)
+        keys = [(first + dt.timedelta(i)).isoformat() for i in range(exp["days"])]
+        dates = sd.get("dates", {})
+        if list(dates) != keys:
+            errors.append(f"sun {y}: dates are not a continuous ordered year")
+        check_record_lines(path.read_text(encoding="utf-8"), f"sun {y}", dates, errors)
+        for key, rec in list(sd.get("edge_events", {}).items()) + list(dates.items()):
+            try:
+                if list(rec) != SUN_EVENTS:
+                    raise CheckError(f"fields are {list(rec)}")
+                ev = {e: parse_z(rec[e]) for e in SUN_EVENTS}
+            except CheckError as exc:
+                errors.append(f"sun {key}: {exc}")
+                continue
+            day = dt.date.fromisoformat(key)
+            midnight = (day - dt.date(1970, 1, 1)).days * 86400 - REFERENCE_UTC_OFFSET
+            if not midnight <= ev["sunrise"] < ev["solar_noon"] < ev["sunset"] < midnight + 86400:
+                errors.append(f"sun {key}: events are out of order or outside the civil date")
+            ref = reference_sun_events(day, REFERENCE_UTC_OFFSET)
+            for e in SUN_EVENTS:
+                diff = abs(ev[e] - ref[e])
+                max_diff = max(max_diff, diff)
+                if diff > SUN_TOLERANCE_S:
+                    far[e] += 1
+                    if far[e] <= 3:
+                        errors.append(f"sun {key}.{e}: {rec[e]} differs from the reference formula by {diff:.0f} s")
+            events[day] = ev
+    for e, n in far.items():
+        errors.append(f"sun: {n} {e} values outside the {SUN_TOLERANCE_S} s tolerance")
+    days = sorted(events)
+    for a, b in zip(days, days[1:]):
+        if (b - a).days != 1 or not events[a]["sunset"] < events[b]["sunrise"]:
+            errors.append(f"sun: {a} -> {b} is not a continuous positive night")
+    return events, max_diff
+
+
+def check_time_files(defs, years, events, errors):
+    t = defs["time"]
+    for y in years:
+        path = DATA_DIR / TIME_DIR / f"{y}.json"
+        if not path.exists():
+            errors.append(f"data: missing {path.relative_to(ROOT)}")
+            continue
+        td = load(path)
+        if list(td) != TIME_FIELDS:
+            errors.append(f"time {y}: fields are {list(td)}")
+        exp = {"schema_version": defs["schema_version"], "calendar_id": defs["calendar_id"],
+               "calendar_version": defs["calendar_version"], "model_id": t["model_id"],
+               "sun_data_revision": t["sun_data_revision"], "year": y, "timezone": defs["timezone"],
+               "utc_offset": "+03:00", "days": 366 if calendar.isleap(y) else 365}
+        for field, value in exp.items():
+            if not same(td.get(field), value):
+                errors.append(f"time {y}: {field} is wrong")
+        first = dt.date(y, 1, 1)
+        keys = [(first + dt.timedelta(i)).isoformat() for i in range(exp["days"])]
+        dates = td.get("dates", {})
+        if list(dates) != keys:
+            errors.append(f"time {y}: dates are not a continuous ordered year")
+        check_record_lines(path.read_text(encoding="utf-8"), f"time {y}", dates, errors)
+        bad = 0
+        for key, rec in dates.items():
+            day = dt.date.fromisoformat(key)
+            if day not in events or day - dt.timedelta(1) not in events or day + dt.timedelta(1) not in events:
+                continue
+            ev = events[day]
+            midnight = (day - dt.date(1970, 1, 1)).days * 86400 - REFERENCE_UTC_OFFSET
+            exp_rec = {e: dt.datetime.fromtimestamp(ev[e], dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                       for e in SUN_EVENTS}
+            for e in SUN_EVENTS:
+                s = ev[e] - midnight
+                exp_rec[f"{e}_local"] = f"{s // 3600:02d}:{s // 60 % 60:02d}:{s % 60:02d}"
+            exp_rec["poras"] = reference_pora_changes(day, events, REFERENCE_UTC_OFFSET)
+            if not same(rec, exp_rec):
+                bad += 1
+                if bad <= 3:
+                    errors.append(f"time {key}: got {rec}, expected {exp_rec}")
+        if bad:
+            errors.append(f"time {y}: {bad} mismatching records")
+
+
+def check_time_names(defs, errors):
+    path = DATA_DIR / LANGUAGE / "time.json"
+    tn = load(path)
+    t = defs["time"]
+    if list(tn) != TIME_NAMES_FIELDS:
+        errors.append(f"time names: fields are {list(tn)}")
+    exp = {"schema_version": defs["schema_version"], "calendar_id": defs["calendar_id"],
+           "calendar_version": defs["calendar_version"], "language": LANGUAGE, "model_id": t["model_id"],
+           "reference_location": {"id": REFERENCE_LOCATION["id"], "name": t["reference_location"]["name"]},
+           "poras": [{f: p[f] for f in PUBLISHED_PORA_FIELDS} for p in t["poras"]],
+           "periods": REFERENCE_TIME_NAMES["periods"], "event_names": REFERENCE_TIME_NAMES["event_names"],
+           "unit_forms": REFERENCE_TIME_NAMES["unit_forms"], "templates": REFERENCE_TIME_TEMPLATES,
+           "templates_note": t["templates_note"]}
+    for field, value in exp.items():
+        if not same(tn.get(field), value):
+            errors.append(f"time names: {field} differs")
+    if not (isinstance(tn.get("note"), str) and tn["note"]):
+        errors.append("time names: note is empty")
+    return tn
+
+
+def load_formatter():
+    path = ROOT / "scripts" / "ladoga_time.py"
+    spec = importlib.util.spec_from_file_location("ladoga_time", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def check_formatter(names, errors):
+    """Control cases for scripts/ladoga_time.py with made-up solar events (docs/ladoga-time.md, section 4)."""
+    lt = load_formatter()
+    msk = dt.timezone(dt.timedelta(seconds=REFERENCE_UTC_OFFSET))
+
+    def ms(day, hh, mm, ss=0, milli=0):
+        delta = dt.datetime(2026, 11, day, hh, mm, ss, tzinfo=msk) - dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+        return (delta.days * 86400 + delta.seconds) * 1000 + milli
+    events = {dt.date(2026, 11, d): {"sunrise": ms(d, 9, 15), "solar_noon": ms(d, 12, 42), "sunset": ms(d, 16, 15)}
+              for d in (22, 23, 24, 25)}
+    # moment -> (pora id, seasonal hour, seasonal text, short, relative text)
+    cases = [
+        (ms(24, 12, 0), ("forenoon", 5, "5-й дневной час", "Д05", "За 42 минуты до солнечного полудня")),
+        (ms(24, 1, 30), ("after_midnight", 7, "7-й ночной час", "Н07", "За 7 часов 45 минут до восхода")),
+        (ms(24, 16, 15), ("dusk", 1, "1-й ночной час", "Н01", "Около заката")),
+        (ms(24, 16, 14, 59, 999), ("before_sunset", 12, "12-й дневной час", "Д12", "Около заката")),
+        (ms(24, 16, 14, 40), ("before_sunset", 12, "12-й дневной час", "Д12", "Около заката")),
+        (ms(24, 9, 15), ("morning", 1, "1-й дневной час", "Д01", "Около восхода")),
+        (ms(24, 9, 14, 59, 999), ("predawn", 12, "12-й ночной час", "Н12", "Около восхода")),
+        # First moment of hour 4: a day of 7 h has 35-minute hours, so 09:15 + 105 min.
+        (ms(24, 11, 0), ("forenoon", 4, "4-й дневной час", "Д04", "За 1 час 42 минуты до солнечного полудня")),
+        (ms(24, 10, 59, 59, 999), ("morning", 3, "3-й дневной час", "Д03", "За 1 час 42 минуты до солнечного полудня")),
+        # Exactly between noon (12:42) and sunset (16:15): the past event wins.
+        (ms(24, 14, 28, 30), ("afternoon", 9, "9-й дневной час", "Д09", "Через 1 час 47 минут после солнечного полудня")),
+        (ms(24, 13, 43), ("afternoon", 8, "8-й дневной час", "Д08", "Через 1 час 1 минуту после солнечного полудня")),
+        (ms(24, 0, 0), ("before_midnight", 6, "6-й ночной час", "Н06", "Через 7 часов 45 минут после заката")),
+    ]
+    for moment, (pid, hour, seasonal, short, relative) in cases:
+        try:
+            r = lt.describe(moment, events, REFERENCE_UTC_OFFSET, names)
+            got = (r["pora"]["id"], r["seasonal"]["hour"], r["display"]["seasonal"], r["seasonal"]["short"],
+                   r["display"]["relative"])
+        except Exception as exc:  # report, do not stop the whole check
+            got = f"{type(exc).__name__}: {exc}"
+        if got != (pid, hour, seasonal, short, relative):
+            errors.append(f"formatter {lt.iso_ms(moment, REFERENCE_UTC_OFFSET)}: got {got}, expected {(pid, hour, seasonal, short, relative)}")
+    # Plural forms and the refusal of a bare local time.
+    for n, form in [(1, "минуту"), (2, "минуты"), (5, "минут"), (11, "минут"), (21, "минуту"), (22, "минуты"), (14, "минут")]:
+        if lt.plural(n, names["unit_forms"]["minute"]) != form:
+            errors.append(f"formatter: {n} takes {form!r}")
+    # The command line on real data, including the full calendar-and-pora sentence.
+    real = [
+        (["2026-11-24T12:00:00+03:00", "--style", "full"],
+         "На третий день после Тёмной воды, в лето 1274-е от ладожского начала, в предполуденье на Ладоге."),
+        (["2026-06-21T23:50:00+03:00"], "Полуночье над шхерами"),
+        (["2026-06-21T23:50:00+03:00", "--style", "seasonal"], "4-й ночной час"),
+    ]
+    for argv, expected in real:
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                code = lt.main(argv)
+        except SystemExit as exc:
+            code = exc.code
+        if code != 0 or out.getvalue().strip() != expected:
+            errors.append(f"formatter {' '.join(argv)}: got {out.getvalue().strip()!r} (exit {code}), expected {expected!r}")
+    try:
+        lt.parse_instant("2026-11-24T12:00")
+        errors.append("formatter: a timestamp without UTC offset must be refused")
+    except lt.TimeError:
+        pass
+    return len(cases) + len(real)
+
+
+def check_time(defs, errors):
+    b = defs["build"]
+    years = list(range(b["start_year"], b["end_year"] + 1))
+    check_time_definitions(defs, errors)
+    check_zone(defs, years, errors)
+    events, max_diff = check_sun(defs, years, errors)
+    check_time_files(defs, years, events, errors)
+    names = check_time_names(defs, errors)
+    cases = check_formatter(names, errors)
+    return {"sun_days": len(events), "sun_max_diff_s": round(max_diff), "time_control_cases": cases}
+
+
 def main():
     errors = []
     try:
         defs = load(DEFINITIONS)
         check_definitions(defs, errors)
         summary = check_data(defs, errors)
+        summary.update(check_time(defs, errors))
     except Exception as exc:  # report any failure as a readable line, not a traceback
         print(f"FAILED: {type(exc).__name__}: {exc}")
         return 1

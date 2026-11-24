@@ -1,6 +1,6 @@
 # Ладожский календарь
 
-**Ladoga Calendar** is a modern authorial calendar for Lake Ladoga, the Neva river and the eastern Gulf of Finland (Russia). It expresses an ordinary Gregorian date through the nearest of 25 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE). The rest of this README is in Russian.
+**Ladoga Calendar** is a modern authorial calendar for Lake Ladoga, the Neva river and the eastern Gulf of Finland (Russia). It expresses an ordinary Gregorian date through the nearest of 25 fixed annual holidays and its own year count, the "Years of Ladoga" (`era_year = gregorian_year - 752`). The repository ships ready-made JSON files, one per year from 2025 to 2038, built from a single definitions file (`data/index.json` is the entry point): every day already has a finished Russian phrase, so a consumer needs no date arithmetic and no Russian grammar for the date. A time-of-day layer ("Ladoga time") splits daylight and night into 12 seasonal hours each and eight named periods, computed for the source of the Neva; per-day sunrise, noon, sunset and period changes are precomputed too. The calendar and its holidays are an authorial project, not a reconstruction of a historical system. Everything in this repository is dedicated to the public domain under [CC0 1.0](LICENSE), except the vendored `vendor/astronomy-engine/` (MIT, see its LICENSE) and `tz/Europe/Moscow` (from the public-domain IANA tz database). The rest of this README is in Russian.
 
 ---
 
@@ -21,11 +21,18 @@
 | `data/ru/2025.json` … `data/ru/2038.json` | Готовые данные: по одному файлу на год, в каждом подпись для каждого дня |
 | `data/index.json` | Оглавление: диапазон лет, языки и пути к файлам |
 | `data/ru/holidays.json` | Названия и описания праздников для показа |
+| `data/time/2025.json` … `data/time/2038.json` | Время суток: восход, полдень, закат и смены пор на каждый день |
+| `data/ru/time.json` | Названия пор и шаблоны подписей времени |
+| `data/sun/2025.json` … `data/sun/2038.json` | Точные моменты восхода, полудня и заката в UTC |
 | `ladoga-definitions.json` | Правила календаря: праздники, счёт лет, шаблоны фраз, источники. Из него собираются файлы в `data/` |
 | `scripts/build_calendar.py` | Генератор, который собирает `data/` из правил |
+| `scripts/build_sun.py` | Расчёт восходов и закатов для `data/sun/` |
+| `scripts/ladoga_time.py` | Показ времени суток для любого момента |
 | `scripts/check_calendar.py` | Скрипт, который независимо проверяет правила и данные |
 | `docs/ladoga-calendar.md` | Подробное устройство календаря и формата данных |
-| `docs/ladoga-time.md` | Проект времени суток («Ладожское время»), пока не сделан |
+| `docs/ladoga-time.md` | Время суток («Ладожское время»): сезонные часы и восемь пор |
+| `vendor/astronomy-engine/` | Библиотека Astronomy Engine 2.1.19 (лицензия MIT) для `build_sun.py` |
+| `tz/Europe/Moscow` | Файл часового пояса из tzdb 2026e |
 | `AGENTS.md` | Правила работы над проектом |
 | `LICENSE` | Текст лицензии CC0 1.0 |
 
@@ -113,6 +120,31 @@ jq -r '.holidays[] | "\(.day).\(.month) \(.name)"' data/ru/holidays.json
 
 Если года нет в `data/index.json`, дата вне диапазона. Если год есть, а даты нет в `dates`, такой даты не существует, например 29 февраля 2026 года. В обоих случаях нельзя подставлять ближайшую дату или другой год. Опорный праздник может быть за пределами диапазона: для 1 января 2025 года это Коляда 21 декабря 2024 года, а файла 2024 года нет.
 
+## Время суток
+
+Кроме даты, можно показать пору дня или ночи по Солнцу. От восхода до заката идут 12 дневных часов, от заката до восхода — 12 ночных. Каждые три часа — одна пора: Утро на Неве, Предполуденье на Ладоге, Послеполуденье на островах, Предзакатье над заливом, Сумерки у маяков, Полуночье над шхерами, Заполночье на Неве, Предзарье над Ладогой. Расчёт ведётся для истока Невы.
+
+```bash
+python3 scripts/ladoga_time.py 2026-11-24T12:00:00+03:00 --style full
+# На третий день после Тёмной воды, в лето 1274-е от ладожского начала, в предполуденье на Ладоге.
+python3 scripts/ladoga_time.py now                     # current pora
+python3 scripts/ladoga_time.py 2026-11-24T12:00:00+03:00 --style relative
+# За 42 минуты до солнечного полудня
+```
+
+Без Python пору можно найти в `data/time/<год>.json`: у каждого дня есть список смен пор по местному времени, и нужна последняя запись, время которой не позже текущего:
+
+```bash
+read -r d t < <(TZ=Europe/Moscow date '+%F %T')
+id=$(jq -er --arg d "$d" --arg t "$t" '[.dates[$d].poras[] | select(.[0] <= $t)] | last | .[1]' \
+  "data/time/${d%%-*}.json" 2>/dev/null) || { echo "no record for $d" >&2; exit 1; }
+jq -r --arg id "$id" '.poras[] | select(.id == $id) | .name' data/ru/time.json
+```
+
+Сезонный час («5-й дневной час») и подпись «За 42 минуты до солнечного полудня» требуют расчёта; их даёт `scripts/ladoga_time.py`.
+
+Подробности — в `docs/ladoga-time.md`.
+
 ## Правила календаря
 
 **Счёт лет.** Эра называется «Лета Ладоги». Номер лета равен григорианскому году минус 752. Например, 2026 год — 1274-е лето. Эпоха условна: 753 год взят по археологической дендродате и не означает точный год основания поселения. Номер лета меняется 1 января.
@@ -171,10 +203,12 @@ jq -r '.holidays[] | "\(.day).\(.month) \(.name)"' data/ru/holidays.json
 
 ## Проверка и сборка данных
 
-Нужен только Python 3, сторонние библиотеки не требуются.
+Нужен только Python 3.11 или новее, сторонние библиотеки не требуются: астрономическая библиотека для `build_sun.py` уже лежит в `vendor/`.
 
 ```bash
-python3 scripts/build_calendar.py           # rebuild data/ from ladoga-definitions.json
+python3 scripts/build_sun.py                # recompute data/sun/ (only when the time model or its pins change)
+python3 scripts/build_sun.py --check        # make sure data/sun/ is up to date, write nothing
+python3 scripts/build_calendar.py           # rebuild the rest of data/ from ladoga-definitions.json
 python3 scripts/build_calendar.py --check   # make sure data/ is up to date, write nothing
 python3 scripts/check_calendar.py           # independent check of rules and data
 ```
@@ -185,6 +219,6 @@ python3 scripts/check_calendar.py           # independent check of rules and dat
 
 ## Лицензия
 
-Всё содержимое репозитория — данные, тексты и код — передано в общественное достояние по [CC0 1.0 Universal](LICENSE). Его можно свободно копировать, изменять и использовать для любых целей, в том числе коммерческих, без разрешения и без указания автора.
+Всё содержимое репозитория — данные, тексты и код, кроме папок `vendor/` и `tz/`, — передано в общественное достояние по [CC0 1.0 Universal](LICENSE). Его можно свободно копировать, изменять и использовать для любых целей, в том числе коммерческих, без разрешения и без указания автора.
 
-Это не касается внешних материалов, на которые ссылается раздел `sources`: права на них принадлежат их авторам.
+Это не касается внешних материалов, на которые ссылается раздел `sources`: права на них принадлежат их авторам. Библиотека `vendor/astronomy-engine/` распространяется по своей лицензии MIT (файл `vendor/astronomy-engine/LICENSE`), а файл `tz/Europe/Moscow` взят из базы часовых поясов IANA (tzdb), которая находится в общественном достоянии.
