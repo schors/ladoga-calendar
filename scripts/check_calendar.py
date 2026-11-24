@@ -287,7 +287,7 @@ def expected_record(target):
         "offset_days": offset,
         "day_text": day_text,
         "text": f"{day_text}.",
-        "full_text": f"{day_text}, в лето {era_year}-е от ладожского начала.",
+        "full_text": f"{day_text}, в лето {era_year}-е.",
         "short": short,
     }
 
@@ -456,7 +456,7 @@ def check_data(defs, errors):
             "schema_version": defs["schema_version"], "calendar_id": defs["calendar_id"],
             "calendar_version": defs["calendar_version"], "language": LANGUAGE, "year": y,
             "era_year": y - ERA_OFFSET,
-            "year_phrase": f"в лето {y - ERA_OFFSET}-е от ладожского начала",
+            "year_phrase": f"в лето {y - ERA_OFFSET}-е",
             "is_leap": leap, "days": 366 if leap else 365,
             "holiday_dates": {h["id"]: dt.date(y, h["month"], h["day"]).isoformat() for h in REFERENCE},
         }
@@ -820,7 +820,7 @@ def check_formatter(names, errors):
     # The command line on real data, including the full calendar-and-pora sentence.
     real = [
         (["2026-11-24T12:00:00+03:00", "--style", "full"],
-         "В четвёртый день Тёмной воды, в лето 1274-е от ладожского начала, при высоком солнце над Ладогой."),
+         "В четвёртый день Тёмной воды, в лето 1274-е, при высоком солнце над Ладогой."),
         (["2026-06-21T23:50:00+03:00"], "Первый сон в шхерах"),
         (["2026-06-21T23:50:00+03:00", "--style", "seasonal"], "4-й ночной час"),
     ]

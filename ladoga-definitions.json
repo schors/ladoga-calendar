@@ -1,7 +1,7 @@
 {
   "schema_version": "4.0.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.1.0",
+  "calendar_version": "2.2.0",
   "name": "Ладожский календарь",
   "status": "authorial",
   "locale": "ru-RU",
@@ -35,7 +35,7 @@
       "month": 1,
       "day": 1
     },
-    "year_phrase_template": "в лето {era_year}-е от ладожского начала",
+    "year_phrase_template": "в лето {era_year}-е",
     "note": "753 год принят как условная эпоха по дендрохронологической дате. Это не доказанный точный год основания Ладоги. Номер лета меняется 1 января по договорённости этой системы; Коляда не меняет номер года.",
     "source_ids": [
       "ia_ladoga"

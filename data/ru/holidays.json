@@ -1,7 +1,7 @@
 {
   "schema_version": "4.0.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.1.0",
+  "calendar_version": "2.2.0",
   "language": "ru",
   "note": "Названия и описания праздников для показа. Источники к историческим оговоркам — в ladoga-definitions.json.",
   "holidays": [

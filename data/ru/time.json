@@ -1,7 +1,7 @@
 {
   "schema_version": "4.0.0",
   "calendar_id": "ladoga",
-  "calendar_version": "2.1.0",
+  "calendar_version": "2.2.0",
   "language": "ru",
   "model_id": "ladoga-solar-v1",
   "note": "Названия пор, частей суток и солнечных событий, шаблоны подписей времени. Пора находится по id из data/time/<год>.json.",
