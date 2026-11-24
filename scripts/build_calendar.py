@@ -51,6 +51,16 @@ PUBLISHED_HOLIDAY_FIELDS = ["id", "month", "day", "name", "short_name", "name_ge
                             "on_day_phrase", "aliases", "meaning", "suggested_custom",
                             "historical_note"]
 NUMBER_FIELDS = ["cardinal", "days_word", "ordinal"]
+# Days after a holiday read either "after the holiday" or as days of the holiday itself.
+AFTER_KINDS = ["after", "own_day"]
+# Template kinds and placeholders of each phrase group. The short form of the
+# next day uses the holiday's after kind, so it has no template of its own.
+FORMAT_TEMPLATES = {
+    "day_phrases": (["on_day", "eve", "next_day", "before"] + AFTER_KINDS,
+                    set(HOLIDAY_TEXT_FIELDS) | set(NUMBER_FIELDS)),
+    "short_phrases": (["on_day", "eve", "before"] + AFTER_KINDS,
+                      set(HOLIDAY_TEXT_FIELDS) | {"era_year", "count", "day_number"}),
+}
 
 TIME_DIR = "time"
 SUN_DIR = "sun"
@@ -163,7 +173,20 @@ def validate(defs):
         for field in HOLIDAY_TEXT_FIELDS:
             if not isinstance(h.get(field), str) or not h[field].strip():
                 raise DefinitionError(f"{where}: {field} must be a non-empty string")
+        if h.get("after_kind") not in AFTER_KINDS:
+            raise DefinitionError(f"{where}: after_kind must be one of {AFTER_KINDS}")
 
+    for group, (kinds, allowed) in FORMAT_TEMPLATES.items():
+        templates = fmt.get(group)
+        if not (isinstance(templates, dict) and set(templates) == set(kinds)):
+            raise DefinitionError(f"formatting.{group} must hold exactly {kinds}")
+        for kind, template in templates.items():
+            unknown = set(PLACEHOLDER.findall(template)) - allowed
+            if unknown:
+                raise DefinitionError(f"formatting.{group}.{kind} uses unknown placeholders {sorted(unknown)}")
+    for name, allowed in (("text_template", {"day_text"}), ("full_text_template", {"day_text", "year_phrase"})):
+        if not isinstance(fmt.get(name), str) or set(PLACEHOLDER.findall(fmt[name])) - allowed:
+            raise DefinitionError(f"formatting.{name} must be a string using only {sorted(allowed)}")
     for n, entry in fmt["numbers"].items():
         if not (n.isdigit() and int(n) >= 2):
             raise DefinitionError(f"formatting.numbers key {n!r} must be a number from 2 up")
@@ -233,25 +256,34 @@ def day_text(holiday, offset, fmt):
         return fill(phrases["eve"], names)
     if offset == 1:
         return fill(phrases["next_day"], names)
-    number = fmt["numbers"].get(str(abs(offset)))
+    # Days before count down to the holiday; days after count the holiday as day one.
+    n = -offset if offset < 0 else offset + 1
+    number = fmt["numbers"].get(str(n))
     if number is None:
-        raise DefinitionError(f"formatting.numbers has no entry for {abs(offset)}")
-    kind = "before" if offset < 0 else "after"
+        raise DefinitionError(f"formatting.numbers has no entry for {n}")
+    kind = "before" if offset < 0 else holiday["after_kind"]
     return fill(phrases[kind], {**names, **{f: number[f] for f in NUMBER_FIELDS}})
+
+
+def short_text(holiday, offset, era_year, fmt):
+    phrases = fmt["short_phrases"]
+    kind = ("on_day" if offset == 0 else "eve" if offset == -1 else "before" if offset < 0
+            else holiday["after_kind"])
+    values = {f: holiday[f] for f in HOLIDAY_TEXT_FIELDS}
+    return fill(phrases[kind], {**values, "era_year": str(era_year), "count": str(abs(offset)),
+                                "day_number": str(offset + 1)})
 
 
 def build_year(year, defs):
     era, fmt, holidays = defs["era"], defs["formatting"], defs["holidays"]
     era_year = year + era["year_offset"]
     year_phrase = fill(era["year_phrase_template"], {"era_year": str(era_year)})
-    suffix = fmt["offset_suffix"]
 
     dates = {}
     day = dt.date(year, 1, 1)
     while day.year == year:
         anchor, h, offset = nearest_anchor(day, holidays, fmt["candidate_year_offsets"])
         text_day = day_text(h, offset, fmt)
-        offset_suffix = suffix["zero"] if offset == 0 else fill(suffix["nonzero"], {"signed_offset": f"{offset:+d}"})
         dates[day.isoformat()] = {
             "era_year": era_year,
             "anchor_id": h["id"],
@@ -259,9 +291,9 @@ def build_year(year, defs):
             "anchor_year": anchor.year,
             "offset_days": offset,
             "day_text": text_day,
-            "text": fill(fmt["full_text_template"], {"day_text": text_day, "year_phrase": year_phrase}),
-            "short": fill(fmt["short_template"], {"era_year": str(era_year), "short_name": h["short_name"],
-                                                  "offset_suffix": offset_suffix}),
+            "text": fill(fmt["text_template"], {"day_text": text_day}),
+            "full_text": fill(fmt["full_text_template"], {"day_text": text_day, "year_phrase": year_phrase}),
+            "short": short_text(h, offset, era_year, fmt),
         }
         day += dt.timedelta(days=1)
 
@@ -474,9 +506,10 @@ def build_index(defs, years):
             "paths": "Все пути в этом файле записаны относительно папки, где он лежит.",
             "year_file": "files[language][YYYY] — файл года",
             "holidays_file": "holidays[language] — названия и описания праздников по anchor_id",
-            "ready_date": "dates[YYYY-MM-DD].text",
-            "day_only": "dates[YYYY-MM-DD].day_text",
-            "short_date": "dates[YYYY-MM-DD].short",
+            "ready_date": "dates[YYYY-MM-DD].text — подпись дня без года, с точкой",
+            "full_date": "dates[YYYY-MM-DD].full_text — подпись дня вместе с годом",
+            "day_only": "dates[YYYY-MM-DD].day_text — подпись дня без точки, для вставки во фразу",
+            "short_date": "dates[YYYY-MM-DD].short — год цифрами и расстояние до праздника",
             "year_number": "era_year — номер ладожского лета",
             "year_phrase": "year_phrase",
             "holiday_occurrence": "holiday_dates[holiday_id]",
